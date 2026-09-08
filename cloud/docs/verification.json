@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "model": {
+    "id": "malecns-v1.0-full",
+    "scope": "full",
+    "coverage": "all-annotated-bodies",
+    "neurons": 211577,
+    "edges": 26028386,
+    "synapses": 125365933,
+    "dtMs": 0.1,
+    "connectomeSha256": "17376fa6f9cc97c2cc3ccc37d6694989265d0fe478d0266dd4ae777180e6cc0b"
+  },
+  "batches": 20,
+  "neuralSeconds": 0.2,
+  "totalSpikes": 157913,
+  "computeWallMs": 1717.0394960000704,
+  "elapsedMs": 1907.4756250000005,
+  "realTimeFactor": 0.10485061899545896,
+  "resetToRest": true,
+  "environment": "Linux ARM64 container, 2 CPU quota, one session",
+  "workload": "LC9 200 Hz; ORN_DM1 L/R 20/5 Hz; seed 1",
+  "limitations": "Short smoke test; not a steady-state benchmark or a Windows/GPU result."
+}

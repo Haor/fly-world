@@ -1,0 +1,145 @@
+{
+  "date": "2026-09-08",
+  "backend": "CPU",
+  "neurons": 166700,
+  "neuralSeeds": [
+    1,
+    2,
+    3
+  ],
+  "startSeed": 4729,
+  "timeoutNeuralSeconds": 10,
+  "successes": {
+    "assisted": 3,
+    "odor-off": 0,
+    "aid-off": 0
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "mode": "assisted",
+      "start": {
+        "x": -3.8991455882787704,
+        "z": -6.749914520187303,
+        "yaw": 5.057672976563354
+      },
+      "firstContact": 3.979999999999959,
+      "firstFeed": 3.979999999999959,
+      "spikes": 3706793,
+      "finalDistance": 2.242968605378598,
+      "wallMs": 38013.103209
+    },
+    {
+      "trial": 0,
+      "mode": "odor-off",
+      "start": {
+        "x": -3.8991455882787704,
+        "z": -6.749914520187303,
+        "yaw": 5.057672976563354
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 9581988,
+      "finalDistance": 5.7452425971407015,
+      "wallMs": 102007.48349999999
+    },
+    {
+      "trial": 0,
+      "mode": "aid-off",
+      "start": {
+        "x": -3.8991455882787704,
+        "z": -6.749914520187303,
+        "yaw": 5.057672976563354
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 9695543,
+      "finalDistance": 5.7452425971407015,
+      "wallMs": 203423.499208
+    },
+    {
+      "trial": 1,
+      "mode": "assisted",
+      "start": {
+        "x": 6.492180574685335,
+        "z": -8.454844681546092,
+        "yaw": 3.433747820236596
+      },
+      "firstContact": 6.109999999999914,
+      "firstFeed": 6.109999999999914,
+      "spikes": 5681229,
+      "finalDistance": 2.251471951550592,
+      "wallMs": 78060.822209
+    },
+    {
+      "trial": 1,
+      "mode": "odor-off",
+      "start": {
+        "x": 6.492180574685335,
+        "z": -8.454844681546092,
+        "yaw": 3.433747820236596
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 2273009,
+      "finalDistance": 23.546599121723865,
+      "wallMs": 124590.00612500001
+    },
+    {
+      "trial": 1,
+      "mode": "aid-off",
+      "start": {
+        "x": 6.492180574685335,
+        "z": -8.454844681546092,
+        "yaw": 3.433747820236596
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 9937683,
+      "finalDistance": 22.85673021344485,
+      "wallMs": 203417.90999999992
+    },
+    {
+      "trial": 2,
+      "mode": "assisted",
+      "start": {
+        "x": 6.485625185072422,
+        "z": -8.089121651137248,
+        "yaw": 1.3926304773121247
+      },
+      "firstContact": 7.559999999999883,
+      "firstFeed": 7.559999999999883,
+      "spikes": 7033954,
+      "finalDistance": 2.2993458521097616,
+      "wallMs": 171719.99750000006
+    },
+    {
+      "trial": 2,
+      "mode": "odor-off",
+      "start": {
+        "x": 6.485625185072422,
+        "z": -8.089121651137248,
+        "yaw": 1.3926304773121247
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 1828582,
+      "finalDistance": 23.580328212452343,
+      "wallMs": 121772.28541599994
+    },
+    {
+      "trial": 2,
+      "mode": "aid-off",
+      "start": {
+        "x": 6.485625185072422,
+        "z": -8.089121651137248,
+        "yaw": 1.3926304773121247
+      },
+      "firstContact": null,
+      "firstFeed": null,
+      "spikes": 9526423,
+      "finalDistance": 23.939910314927495,
+      "wallMs": 147891.51679200004
+    }
+  ]
+}

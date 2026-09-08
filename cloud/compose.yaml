@@ -1,0 +1,55 @@
+services:
+  neural:
+    build:
+      context: ..
+      dockerfile: cloud/Dockerfile
+    user: "${RUN_UID:-1000}:${RUN_GID:-1000}"
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://127.0.0.1:8768}
+      MAX_SESSIONS: ${MAX_SESSIONS:-1}
+    volumes:
+      - ./models/malecns-full:/model:ro
+    secrets:
+      - neural_token
+    ports:
+      - "127.0.0.1:${NEURAL_PORT:-9000}:9000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    cpus: 2
+    init: true
+    restart: unless-stopped
+  model-builder:
+    profiles: [tools]
+    build:
+      context: ..
+      dockerfile: cloud/Dockerfile.builder
+    user: "${RUN_UID:-1000}:${RUN_GID:-1000}"
+    volumes:
+      - ./.cache:/cache
+      - ./models:/models
+  caddy:
+    profiles: [tls]
+    image: caddy:2.10.2-alpine
+    environment:
+      NEURAL_DOMAIN: ${NEURAL_DOMAIN:-neural.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      neural:
+        condition: service_healthy
+    restart: unless-stopped
+secrets:
+  neural_token:
+    file: ./secrets/neural-token
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,8 @@
+node_modules/
+.venv/
+.cache/
+models/
+secrets/
+.env
+__pycache__/
+*.pyc

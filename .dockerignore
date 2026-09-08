@@ -1,0 +1,16 @@
+.git
+.private
+.toolchain
+.publish
+dist
+passport-simulator
+ai-passport
+**/node_modules
+**/.venv
+**/.cache
+**/models
+**/secrets
+**/.env
+**/dist
+**/__pycache__
+fly-host/public
