@@ -35,6 +35,6 @@ try {
   brain.postMessage({type:'reset',generation:1});assert.equal((await next()).type,'reset');
   brain.postMessage({type:'step',generation:1,silenced:false,sensory:{}});
   const rest=await next();validateResult(rest,0,metadataRows);assert.equal(rest.total,0);
-  console.log(JSON.stringify({status:'PASS',compute,inputMode,dynamics,metadataRows,model:ready.model,batches:count,neuralSeconds:tick*.0001,totalSpikes:total,
+  console.log(JSON.stringify({status:'PASS',compute,computeKernel:ready.computeKernel,inputMode,dynamics,metadataRows,model:ready.model,batches:count,neuralSeconds:tick*.0001,totalSpikes:total,
     computeWallMs:wallMs,elapsedMs,realTimeFactor:tick*.1/elapsedMs,resetToRest:true},null,2));
 } finally {brain.terminate();}

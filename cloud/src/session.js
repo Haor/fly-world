@@ -3,7 +3,7 @@ import { BrainCPU } from '../../fly-host/src/brain.js';
 import { PulseBank, populations, decodeCounts } from '../../fly-host/src/stimulus.js';
 import { sensoryPopulations, addSensoryRates } from '../../fly-host/src/habitat.js';
 
-const {graph, seed,profile}=workerData;
+const {graph, seed,profile,indexedSpikes}=workerData;
 const brain=new BrainCPU(graph,{seed,profile}), pulses=new PulseBank(graph.n);
 const output=populations(graph.neurons), input=sensoryPopulations(graph.neurons);
 const byId=new Map(graph.neurons.map((row,i)=>[String(row[0]),i]));
@@ -22,10 +22,13 @@ parentPort.on('message',m=>{
     } else if(m.type==='step') {
       const started=performance.now();
       const result=brain.batch(m.steps,addSensoryRates(pulses.sample(brain.tick),input,m.sensory),m.silenced,m.background);
-      const rates=Array.from(decodeCounts(result.counts,output,m.steps)), spikes=[];
-      for(let i=0;i<graph.n;i++)if(result.counts[i])spikes.push([String(graph.neurons[i][0]),result.counts[i]]);
+      const rates=Array.from(decodeCounts(result.counts,output,m.steps)), spikes=[],firing=[],counts=[];
+      for(let i=0;i<graph.n;i++)if(result.counts[i]){
+        if(indexedSpikes){firing.push(i);counts.push(result.counts[i]);}
+        else spikes.push([String(graph.neurons[i][0]),result.counts[i]]);
+      }
       parentPort.postMessage({type:'result',requestId:m.requestId,generation:m.generation,
-        tick:result.tick,steps:m.steps,total:result.total,wallMs:performance.now()-started,rates,spikes});
+        tick:result.tick,steps:m.steps,total:result.total,wallMs:performance.now()-started,rates,...(indexedSpikes?{firing,counts}:{spikes})});
     }
     parentPort.postMessage({type:'processed'});
   } catch {

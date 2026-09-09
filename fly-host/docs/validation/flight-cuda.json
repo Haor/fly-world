@@ -1,0 +1,1233 @@
+{
+  "status": "PASS",
+  "hardware": "NVIDIA RTX 4090 D",
+  "torch": "2.5.1+cu124",
+  "triton": "3.1.0",
+  "scope": "reduced neural-to-body flight; no calibrated natural behavior claim",
+  "records": [
+    {
+      "seed": 1,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 2.3537098695713667,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 1,
+      "name": "background",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 5,
+      "airSeconds": 3.2599999999999745,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.2199999999999753,
+      "totalSpikes": 1619324,
+      "pathMm": 31.290977910306665,
+      "yaw": 0.6722918960540097,
+      "position": [
+        13.437500000000002,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.8666666666666645,
+        2.6666666666666643,
+        6.466666666666658,
+        5.599999999999993,
+        3.449999999999999,
+        2.0000000000000004,
+        5.899999999999995
+      ],
+      "realTimeFactor": 1.5557536776323573,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.0000000000000004,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.02666666666666667,
+        "steerRight": 0.08571428571428573,
+        "landing": 3.3499999999999988,
+        "muscleLeft": 6.366666666666663,
+        "muscleRight": 6.033333333333326
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 13.333333333333334,
+        "steerRight": 14.285714285714286,
+        "landing": 50,
+        "muscleLeft": 100,
+        "muscleRight": 91.66666666666667
+      }
+    },
+    {
+      "seed": 1,
+      "name": "environment",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 7,
+      "airSeconds": 2.0799999999999996,
+      "maxHeightMm": 2.999999999999355,
+      "poweredSeconds": 2.020000000000001,
+      "totalSpikes": 2315206,
+      "pathMm": 17.885267527922483,
+      "yaw": 0.5338434886231244,
+      "position": [
+        -7.523759759787074,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.7333333333333316,
+        2.6666666666666643,
+        6.733333333333322,
+        5.599999999999991,
+        2.65,
+        2.100000000000001,
+        5.599999999999996
+      ],
+      "realTimeFactor": 1.4632363833678024,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.100000000000001,
+        "forward": 0,
+        "backwardPrep": 1.6000000000000003,
+        "backwardJump": 0,
+        "steerLeft": 0.013333333333333334,
+        "steerRight": 0,
+        "landing": 3.7999999999999963,
+        "muscleLeft": 6.033333333333328,
+        "muscleRight": 5.933333333333328
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 0,
+        "landing": 75,
+        "muscleLeft": 100,
+        "muscleRight": 83.33333333333333
+      }
+    },
+    {
+      "seed": 1,
+      "name": "occlusion",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 5,
+      "airSeconds": 3.519999999999969,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.45999999999997,
+      "totalSpikes": 2231949,
+      "pathMm": 16.335935929381243,
+      "yaw": 0.191887574120542,
+      "position": [
+        -11.402262017397046,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.1999999999999984,
+        3.3999999999999977,
+        6.533333333333321,
+        5.533333333333324,
+        2.9999999999999996,
+        2.7000000000000006,
+        6.299999999999994
+      ],
+      "realTimeFactor": 1.4606064019825755,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.7000000000000006,
+        "forward": 0,
+        "backwardPrep": 1.8000000000000005,
+        "backwardJump": 0,
+        "steerLeft": 0.013333333333333334,
+        "steerRight": 0.028571428571428574,
+        "landing": 3.299999999999998,
+        "muscleLeft": 5.566666666666661,
+        "muscleRight": 5.8333333333333295
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 7.142857142857143,
+        "landing": 75,
+        "muscleLeft": 91.66666666666667,
+        "muscleRight": 83.33333333333333
+      }
+    },
+    {
+      "seed": 1,
+      "name": "light-left",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 4,
+      "airSeconds": 3.039999999999979,
+      "maxHeightMm": 2.999999999999584,
+      "poweredSeconds": 3.0199999999999796,
+      "totalSpikes": 1957040,
+      "pathMm": 24.577375325819073,
+      "yaw": 0.44237638336915247,
+      "position": [
+        4.018767697470846,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.3999999999999977,
+        2.933333333333331,
+        6.466666666666656,
+        4.9333333333333265,
+        2.599999999999999,
+        2.4,
+        6.699999999999992
+      ],
+      "realTimeFactor": 1.57801840294298,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.4,
+        "forward": 0,
+        "backwardPrep": 1.3,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0.05714285714285715,
+        "landing": 3.0999999999999974,
+        "muscleLeft": 6.199999999999992,
+        "muscleRight": 6.249999999999993
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 14.285714285714286,
+        "landing": 75,
+        "muscleLeft": 108.33333333333333,
+        "muscleRight": 108.33333333333333
+      }
+    },
+    {
+      "seed": 1,
+      "name": "light-right",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 4,
+      "airSeconds": 3.239999999999975,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.179999999999976,
+      "totalSpikes": 1912527,
+      "pathMm": 22.329477420061398,
+      "yaw": 0.26287227519923184,
+      "position": [
+        2.8882450007324225,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.933333333333331,
+        3.199999999999998,
+        6.3333333333333215,
+        5.866666666666655,
+        2.3,
+        2.2000000000000006,
+        5.999999999999995
+      ],
+      "realTimeFactor": 1.5395567205312526,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.2000000000000006,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.04,
+        "steerRight": 0.014285714285714287,
+        "landing": 2.999999999999998,
+        "muscleLeft": 6.033333333333328,
+        "muscleRight": 5.883333333333327
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 13.333333333333334,
+        "steerRight": 7.142857142857143,
+        "landing": 50,
+        "muscleLeft": 100,
+        "muscleRight": 91.66666666666667
+      }
+    },
+    {
+      "seed": 1,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 100710,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 1.6684625193881095,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 7,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 2.689701821706644,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 7,
+      "name": "background",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 6,
+      "airSeconds": 2.4199999999999924,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 2.2199999999999966,
+      "totalSpikes": 1604867,
+      "pathMm": 27.47993442369958,
+      "yaw": 0.4575986322409312,
+      "position": [
+        7.52480561882658,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.799999999999998,
+        3.133333333333331,
+        6.666666666666655,
+        5.599999999999989,
+        3.249999999999999,
+        2.1,
+        5.4999999999999964
+      ],
+      "realTimeFactor": 1.7125783165834483,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.1,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.02666666666666667,
+        "steerRight": 0.08571428571428572,
+        "landing": 3.199999999999998,
+        "muscleLeft": 5.949999999999995,
+        "muscleRight": 5.3333333333333295
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 14.285714285714286,
+        "landing": 75,
+        "muscleLeft": 83.33333333333333,
+        "muscleRight": 91.66666666666667
+      }
+    },
+    {
+      "seed": 7,
+      "name": "environment",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 8,
+      "airSeconds": 1.8800000000000014,
+      "maxHeightMm": 2.999999959595925,
+      "poweredSeconds": 1.7200000000000013,
+      "totalSpikes": 2384846,
+      "pathMm": 21.838162657124045,
+      "yaw": 0.39024621432770623,
+      "position": [
+        -2.6779171397675676,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.2666666666666635,
+        3.266666666666665,
+        6.733333333333323,
+        5.799999999999992,
+        3.7500000000000004,
+        3.600000000000001,
+        5.799999999999995
+      ],
+      "realTimeFactor": 1.6319386306372743,
+      "appliedFlightMeanHz": {
+        "giantFiber": 3.600000000000001,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.05333333333333334,
+        "steerRight": 0.014285714285714287,
+        "landing": 3.5999999999999988,
+        "muscleLeft": 6.0999999999999925,
+        "muscleRight": 5.6666666666666625
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 13.333333333333334,
+        "steerRight": 7.142857142857143,
+        "landing": 100,
+        "muscleLeft": 100,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 7,
+      "name": "occlusion",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 4,
+      "airSeconds": 3.5999999999999672,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.4399999999999706,
+      "totalSpikes": 2239776,
+      "pathMm": 17.606898842876532,
+      "yaw": 0.06956609935217807,
+      "position": [
+        -9.700275943670412,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.5333333333333314,
+        3.599999999999998,
+        6.599999999999989,
+        5.999999999999991,
+        2.55,
+        2.9000000000000012,
+        6.199999999999996
+      ],
+      "realTimeFactor": 1.8173269847565103,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.9000000000000012,
+        "forward": 0,
+        "backwardPrep": 1.3,
+        "backwardJump": 0,
+        "steerLeft": 0.013333333333333334,
+        "steerRight": 0.014285714285714287,
+        "landing": 2.9999999999999982,
+        "muscleLeft": 5.733333333333328,
+        "muscleRight": 5.516666666666663
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 7.142857142857143,
+        "landing": 50,
+        "muscleLeft": 91.66666666666667,
+        "muscleRight": 83.33333333333333
+      }
+    },
+    {
+      "seed": 7,
+      "name": "light-left",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 4,
+      "airSeconds": 3.379999999999972,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.329999999999973,
+      "totalSpikes": 1986207,
+      "pathMm": 33.79851910694042,
+      "yaw": 0.6005118903726838,
+      "position": [
+        13.06761458633274,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.933333333333331,
+        3.133333333333333,
+        7.133333333333321,
+        5.799999999999988,
+        3.0000000000000004,
+        2.3000000000000007,
+        6.099999999999995
+      ],
+      "realTimeFactor": 1.5619819475587955,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.3000000000000007,
+        "forward": 0,
+        "backwardPrep": 1.3,
+        "backwardJump": 0,
+        "steerLeft": 0.02666666666666667,
+        "steerRight": 0.014285714285714287,
+        "landing": 3.1999999999999975,
+        "muscleLeft": 5.4166666666666625,
+        "muscleRight": 5.016666666666662
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 7.142857142857143,
+        "landing": 50,
+        "muscleLeft": 91.66666666666667,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 7,
+      "name": "light-right",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 7,
+      "airSeconds": 2.53999999999999,
+      "maxHeightMm": 2.9999999999486793,
+      "poweredSeconds": 2.5099999999999905,
+      "totalSpikes": 1916268,
+      "pathMm": 31.71769235859883,
+      "yaw": 0.7037592568301804,
+      "position": [
+        13.437500000000002,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.133333333333332,
+        2.9999999999999982,
+        6.799999999999988,
+        5.533333333333326,
+        3.3000000000000003,
+        3.0000000000000013,
+        4.999999999999998
+      ],
+      "realTimeFactor": 1.5718107112227528,
+      "appliedFlightMeanHz": {
+        "giantFiber": 3.0000000000000013,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0.028571428571428574,
+        "landing": 3.599999999999997,
+        "muscleLeft": 5.683333333333327,
+        "muscleRight": 5.133333333333329
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 7.142857142857143,
+        "landing": 75,
+        "muscleLeft": 100,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 7,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 100291,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 1.6660415036558387,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 19,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 2.457391817636543,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 19,
+      "name": "background",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 5,
+      "airSeconds": 3.1599999999999766,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.049999999999979,
+      "totalSpikes": 1599530,
+      "pathMm": 21.05470945781616,
+      "yaw": 0.206209462213185,
+      "position": [
+        0.7710312457966187,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.9999999999999982,
+        2.5333333333333323,
+        6.733333333333324,
+        6.066666666666656,
+        2.85,
+        2.3000000000000007,
+        6.099999999999994
+      ],
+      "realTimeFactor": 1.7111140898525323,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.3000000000000007,
+        "forward": 0,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.02666666666666667,
+        "steerRight": 0.14285714285714285,
+        "landing": 3.4499999999999975,
+        "muscleLeft": 5.7166666666666615,
+        "muscleRight": 5.749999999999996
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 28.571428571428573,
+        "landing": 75,
+        "muscleLeft": 125,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 19,
+      "name": "environment",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 3,
+      "airSeconds": 3.9599999999999596,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.889999999999961,
+      "totalSpikes": 2307238,
+      "pathMm": 16.857312356896962,
+      "yaw": 0.12322514303067529,
+      "position": [
+        -10.403655511768113,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.4666666666666632,
+        3.0666666666666647,
+        6.266666666666659,
+        5.666666666666655,
+        3.2,
+        2.400000000000001,
+        5.799999999999995
+      ],
+      "realTimeFactor": 1.4909695708743533,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.400000000000001,
+        "forward": 0,
+        "backwardPrep": 1.6000000000000003,
+        "backwardJump": 0,
+        "steerLeft": 0.013333333333333334,
+        "steerRight": 0.05714285714285715,
+        "landing": 2.9999999999999982,
+        "muscleLeft": 5.516666666666664,
+        "muscleRight": 5.1999999999999975
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 7.142857142857143,
+        "landing": 50,
+        "muscleLeft": 100,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 19,
+      "name": "occlusion",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 5,
+      "airSeconds": 3.239999999999975,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.1699999999999764,
+      "totalSpikes": 2257297,
+      "pathMm": 20.905074298128085,
+      "yaw": 0.3272743950675623,
+      "position": [
+        -7.413335765879869,
+        13.437500000000002
+      ],
+      "meanRates": [
+        2.799999999999997,
+        2.599999999999998,
+        6.599999999999989,
+        5.866666666666658,
+        3.0500000000000003,
+        3.0000000000000013,
+        5.999999999999996
+      ],
+      "realTimeFactor": 1.5323438345317937,
+      "appliedFlightMeanHz": {
+        "giantFiber": 3.0000000000000013,
+        "forward": 0.2,
+        "backwardPrep": 1.5000000000000002,
+        "backwardJump": 0,
+        "steerLeft": 0.013333333333333334,
+        "steerRight": 0.028571428571428574,
+        "landing": 2.849999999999999,
+        "muscleLeft": 5.33333333333333,
+        "muscleRight": 4.98333333333333
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 50,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 7.142857142857143,
+        "landing": 50,
+        "muscleLeft": 91.66666666666667,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 19,
+      "name": "light-left",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 3,
+      "airSeconds": 3.699999999999965,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.6399999999999664,
+      "totalSpikes": 1976890,
+      "pathMm": 31.275624669734217,
+      "yaw": 0.35495010936015864,
+      "position": [
+        13.026611172787037,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.5333333333333297,
+        3.1999999999999966,
+        6.933333333333321,
+        6.399999999999988,
+        3.4999999999999987,
+        2,
+        5.599999999999996
+      ],
+      "realTimeFactor": 1.6546949866002265,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2,
+        "forward": 0.1,
+        "backwardPrep": 1.2,
+        "backwardJump": 0,
+        "steerLeft": 0.04,
+        "steerRight": 0.07142857142857144,
+        "landing": 2.8999999999999986,
+        "muscleLeft": 5.599999999999994,
+        "muscleRight": 5.633333333333327
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 50,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 14.285714285714286,
+        "landing": 75,
+        "muscleLeft": 100,
+        "muscleRight": 108.33333333333333
+      }
+    },
+    {
+      "seed": 19,
+      "name": "light-right",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 3,
+      "airSeconds": 3.139999999999977,
+      "maxHeightMm": 2.9999999999999925,
+      "poweredSeconds": 3.089999999999978,
+      "totalSpikes": 1957014,
+      "pathMm": 14.775562951304552,
+      "yaw": 0.10981191359274534,
+      "position": [
+        -8.345586904098308,
+        13.437500000000002
+      ],
+      "meanRates": [
+        3.3333333333333304,
+        2.7333333333333307,
+        6.666666666666655,
+        6.466666666666658,
+        2.5,
+        2.3000000000000007,
+        5.599999999999997
+      ],
+      "realTimeFactor": 1.6886111302319875,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.3000000000000007,
+        "forward": 0.1,
+        "backwardPrep": 1.3,
+        "backwardJump": 0,
+        "steerLeft": 0.08,
+        "steerRight": 0.08571428571428573,
+        "landing": 3.3999999999999964,
+        "muscleLeft": 5.066666666666663,
+        "muscleRight": 5.166666666666661
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 150,
+        "forward": 50,
+        "backwardPrep": 100,
+        "backwardJump": 0,
+        "steerLeft": 20,
+        "steerRight": 21.428571428571427,
+        "landing": 50,
+        "muscleLeft": 100,
+        "muscleRight": 100
+      }
+    },
+    {
+      "seed": 19,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 0,
+      "airSeconds": 0,
+      "maxHeightMm": 0,
+      "poweredSeconds": 0,
+      "totalSpikes": 100835,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 1.7937997855275716,
+      "appliedFlightMeanHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 0,
+        "forward": 0,
+        "backwardPrep": 0,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0,
+        "landing": 0,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 1,
+      "name": "motor-output-cut",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 10,
+      "airSeconds": 0.09999999999999999,
+      "maxHeightMm": 0.3094999999999999,
+      "poweredSeconds": 0,
+      "totalSpikes": 2411987,
+      "pathMm": 8.198544877806693,
+      "yaw": 0.039592312511251,
+      "position": [
+        -8.284696463261895,
+        9.2874865850148
+      ],
+      "meanRates": [
+        2.7333333333333307,
+        2.666666666666665,
+        6.066666666666654,
+        6.133333333333323,
+        3.1,
+        2.5000000000000004,
+        6.8999999999999915
+      ],
+      "realTimeFactor": 1.3317738383351483,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.5000000000000004,
+        "forward": 0.1,
+        "backwardPrep": 1.6,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 0.014285714285714287,
+        "landing": 3.249999999999998,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 50,
+        "backwardPrep": 100,
+        "backwardJump": 0,
+        "steerLeft": 0,
+        "steerRight": 7.142857142857143,
+        "landing": 75,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 7,
+      "name": "motor-output-cut",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 10,
+      "airSeconds": 0.09999999999999999,
+      "maxHeightMm": 0.3094999999999999,
+      "poweredSeconds": 0,
+      "totalSpikes": 2454797,
+      "pathMm": 8.421305879182373,
+      "yaw": 0.7814393591666239,
+      "position": [
+        -5.750583216685846,
+        8.319713499351387
+      ],
+      "meanRates": [
+        2.666666666666665,
+        2.933333333333332,
+        6.39999999999999,
+        5.3999999999999915,
+        3.1499999999999986,
+        2.3000000000000007,
+        5.899999999999996
+      ],
+      "realTimeFactor": 1.230365077847035,
+      "appliedFlightMeanHz": {
+        "giantFiber": 2.3000000000000007,
+        "forward": 0.2,
+        "backwardPrep": 1.4000000000000001,
+        "backwardJump": 0,
+        "steerLeft": 0.05333333333333334,
+        "steerRight": 0.028571428571428574,
+        "landing": 3.3499999999999983,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 50,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 13.333333333333334,
+        "steerRight": 7.142857142857143,
+        "landing": 100,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    },
+    {
+      "seed": 19,
+      "name": "motor-output-cut",
+      "seconds": 5,
+      "neurons": 211577,
+      "compute": "cuda",
+      "computeKernel": "triton-events",
+      "takeoffs": 9,
+      "airSeconds": 0.09,
+      "maxHeightMm": 0.3094999999999999,
+      "poweredSeconds": 0,
+      "totalSpikes": 2485909,
+      "pathMm": 8.900514298642964,
+      "yaw": 0.5669035128430976,
+      "position": [
+        -6.668015298071115,
+        9.648601440512834
+      ],
+      "meanRates": [
+        3.3999999999999977,
+        3.1333333333333315,
+        6.133333333333322,
+        5.399999999999993,
+        2.9499999999999997,
+        1.7000000000000002,
+        5.1999999999999975
+      ],
+      "realTimeFactor": 1.36016801421836,
+      "appliedFlightMeanHz": {
+        "giantFiber": 1.7000000000000002,
+        "forward": 0,
+        "backwardPrep": 1.9000000000000006,
+        "backwardJump": 0,
+        "steerLeft": 0.02666666666666667,
+        "steerRight": 0.04285714285714286,
+        "landing": 3.449999999999997,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      },
+      "appliedFlightPeakHz": {
+        "giantFiber": 100,
+        "forward": 0,
+        "backwardPrep": 50,
+        "backwardJump": 0,
+        "steerLeft": 6.666666666666667,
+        "steerRight": 21.428571428571427,
+        "landing": 50,
+        "muscleLeft": 0,
+        "muscleRight": 0
+      }
+    }
+  ]
+}

@@ -149,3 +149,13 @@ See [equations and controls](../../fly-host/docs/autonomous-dynamics.md).
 `NEURAL_DYNAMICS=adaptive` selects it in `smoke.js`; `check-autonomy.js` always
 uses adaptive sensory sessions. This extension uses the same version 2 transport
 with an explicit dynamics handshake, so older reference clients keep their behavior.
+
+## Compact complete spike frames
+
+An init can include `spikeEncoding:"index-count/1"` with `metadata:true`. Keep the base version-2 field `spikeIds:"body-id"`. The server confirms the selected format in `ready.spikeEncoding`. If an older server does not confirm it, the client continues to read body-ID `spikes`.
+
+For the negotiated format, results contain `firing:[index,...]` and `counts:[count,...]` instead of `spikes`. Indices are zero-based rows of this session's complete metadata, in strictly increasing order. Arrays have equal lengths; each count is 1–100 and their sum equals `total`. No spikes are sampled or omitted. Reload metadata after a model change.
+
+`ready.computeKernel` identifies `javascript`, `torch-csr`, or `triton-events`. Adaptive CUDA uses fused event kernels and CUDA Graph when Triton is available. Without Triton, it uses the same dynamics through PyTorch CUDA. Initialization includes graph capture; `ready` is sent after preparation. `wallMs` excludes transport and client processing. Use `node cloud/tools/benchmark.js` to measure end-to-end speed.
+
+The client derives flight observations from complete spike frames and the selected metadata. This adds no motor input. See [flight mapping](../../fly-host/docs/flight.md).

@@ -21,7 +21,7 @@ const simulation = new Simulation({assetBase, onState: stateChanged, onResult: r
   createWorker: backend => {
     if (backend !== 'cloud') return new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
     const remote=new CloudBrain({url:$('cloud-url').value,token:$('cloud-token').value,neurons:brainView.neurons,modelId:$('model-scale').value==='full'?'malecns-v1.0-full':'malecns-v1.0-retained',
-      compute:$('service-compute').value,dynamics:simulation.dynamics,inputMode:simulation.world.options.mode,onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);}});
+      compute:$('service-compute').value,dynamics:simulation.dynamics,inputMode:simulation.world.options.mode,onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);simulation.setNeurons(neurons);}});
     $('cloud-token').value='';return remote;
   }});
 const habitatView = new HabitatView($('habitat-canvas'), simulation.world);
@@ -77,6 +77,7 @@ function render() {
   $('energy').textContent = active ? Math.round(world.energy*100)+'%' : '—';
   $('hunger-meter').style.width = (active ? world.hunger*100 : 0)+'%';
   $('energy-meter').style.width = (active ? world.energy*100 : 0)+'%';
+  $('flight-output').textContent = active ? `DLM/DVM ${s.body.flightRates.muscleLeft.toFixed(1)} / ${s.body.flightRates.muscleRight.toFixed(1)} Hz · 高度 ${pose.y.toFixed(2)} mm · 起飞 ${s.body.takeoffs}` : '翼动力 — / — Hz · 高度 — mm';
   $('coordinates').textContent = active ? `X ${pose.x.toFixed(1)} / Z ${pose.z.toFixed(1)} mm` : 'X — / Z —';
   const sensoryOnly=s.world.options.mode==='sensory';
   $('background').disabled=s.dynamics!=='adaptive'||s.resetting;$('background').checked=s.dynamics==='adaptive'&&s.background;
@@ -160,7 +161,7 @@ async function boot() {
     try {cloudURL($('cloud-url').value);$('cloud-error').textContent='';}
     catch {$('cloud-error').textContent='请填写有效的云端 WebSocket 地址。';return;}
   }
-  if (assetsReady) {if($('backend').value!=='cloud'){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);}simulation.start($('backend').value);return;}
+  if (assetsReady) {if($('backend').value!=='cloud'){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);}simulation.start($('backend').value);return;}
   booting=true;simulation.detail='正在加载脑解剖数据与三维标本…';stateChanged();
   try {
     brainView?.dispose();bodyView?.dispose();
@@ -174,7 +175,7 @@ async function boot() {
     const loaded=await Promise.allSettled([brainView.load(),bodyView.load()]);
     if(disposed)return;
     const failed=loaded.find(r=>r.status==='rejected');if(failed)throw failed.reason;
-    retainedNeurons=loaded[0].value;groups=populations(retainedNeurons);assetsReady=true;
+    retainedNeurons=loaded[0].value;groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);assetsReady=true;
     bodyView.setDepthOfField($('depth-of-field').checked);
     bodyView.setShadows($('show-shadows').checked);
     booting=false;simulation.start($('backend').value);
@@ -219,7 +220,7 @@ $('cloud-connect').onclick=boot;
 $('model-scale').onchange=()=>{
   simulation.fail('模型已切换，请启动或连接所选模型。','idle');
   if($('model-scale').value==='full'){$('backend').value='cloud';$('cloud-settings').hidden=false;document.querySelector('.advanced').open=true;}
-  else {$('backend').value='auto';$('cloud-settings').hidden=true;if(retainedNeurons){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);}}
+  else {$('backend').value='auto';$('cloud-settings').hidden=true;if(retainedNeurons){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);}}
   render();
 };
 $('input-mode').onchange=()=>{

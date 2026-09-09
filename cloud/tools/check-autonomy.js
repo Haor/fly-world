@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {WebSocket} from 'ws';
 import {CloudBrain} from '../../fly-host/src/cloud-brain.js';
+import {FlightReadout} from '../../fly-host/src/flight-readout.js';
 import {Habitat} from '../../fly-host/src/habitat.js';
 import {FlyController} from '../../fly-host/src/controller.js';
 import {validateResult} from '../../fly-host/src/neural-contract.js';
@@ -10,33 +11,41 @@ const token=(await readFile(process.env.NEURAL_TOKEN_FILE,'utf8')).trim();
 class Socket extends WebSocket {constructor(url){super(url,{origin:process.env.NEURAL_ORIGIN||'http://127.0.0.1:8768'});}}
 const seconds=Number(process.env.PROBE_SECONDS||1),seeds=(process.env.PROBE_SEEDS||'1,7,19').split(',').map(Number);
 assert(Number.isFinite(seconds)&&seconds>=.1&&seconds<=30&&seeds.every(Number.isSafeInteger));
+const cases=process.env.PROBE_CASES?.split(',');
 const records=[];
 for(const seed of seeds){
- let nodeCount=0;
+ let nodeCount=0,flightReadout;
  const brain=new CloudBrain({url:process.env.NEURAL_URL||'ws://127.0.0.1:9000/neural',token,neurons:[],Socket,
-  seed,modelId:process.env.NEURAL_MODEL||'malecns-v1.0-full',compute:process.env.NEURAL_COMPUTE||'cuda',inputMode:'sensory',dynamics:'adaptive',onMetadata:rows=>{nodeCount=rows.length;}});
+  seed,modelId:process.env.NEURAL_MODEL||'malecns-v1.0-full',compute:process.env.NEURAL_COMPUTE||'cuda',inputMode:'sensory',dynamics:'adaptive',onMetadata:rows=>{nodeCount=rows.length;flightReadout=new FlightReadout(rows);}});
  const queue=[],waiters=[];brain.onmessage=({data})=>{if(waiters.length)waiters.shift()(data);else queue.push(data);};
  const next=async()=>{const m=queue.length?queue.shift():await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Neural response timed out')),65000);waiters.push(m=>{clearTimeout(timer);resolve(m);});});if(m.type==='error')throw Error(m.message);return m;};
  try{
   brain.postMessage({type:'init'});let ready=await next();while(ready.type==='stage')ready=await next();assert.equal(ready.type,'ready');
   let generation=0;
   for(const [name,options,background,silenced] of [
-   ['quiet',{enabled:false},false,false],['background',{enabled:false},true,false],['environment',{},true,false],
+   ['quiet',{enabled:false},false,false],['background',{enabled:false},true,false],['environment',{},true,false],['motor-output-cut',{cutFlightMuscles:true},true,false],
+   ['occlusion',{occlusionProbe:true},true,false],
    ['light-left',{odor:false,lightAngle:90},true,false],['light-right',{odor:false,lightAngle:-90},true,false],['disconnected',{},true,true]]){
+   if(cases&&!cases.includes(name))continue;
    if(generation){brain.postMessage({type:'reset',generation});assert.equal((await next()).type,'reset');}
    const world=new Habitat(options),body=new FlyController();body.profile='adaptive';world.reset(body);
-   let tick=0,total=0,path=0,wallMs=0;const average=new Float64Array(7);
+   let tick=0,total=0,path=0,wallMs=0,airSeconds=0,maxHeight=0,poweredSeconds=0;const flightSum={},flightPeak={};const average=new Float64Array(7);
    const batches=Math.round((name==='quiet'||name==='disconnected'?Math.min(seconds,.2):seconds)*100);
    for(let i=0;i<batches;i++){
+    if(options.occlusionProbe&&i===100)world.loom();
     const sensory=world.sense(body);for(const key of ['walk','left','right','looming'])assert.equal(sensory[key],0);
     brain.postMessage({type:'step',generation,sensory,background,silenced});const r=await next();validateResult(r,tick,nodeCount);tick=r.tick;total+=r.total;wallMs+=r.wallMs;
     for(let c=0;c<7;c++)average[c]+=r.rates[c]/batches;
-    const {x,z}=body;body.advance(r.rates,.01,world.feeding);world.advance(body,body.rates,.01);path+=Math.hypot(body.x-x,body.z-z);
+    const {x,z}=body;const flight=flightReadout.decode(r);if(options.cutFlightMuscles){flight.hz.muscleLeft=0;flight.hz.muscleRight=0;}body.advance(r.rates,.01,world.feeding,flight);
+    for(const [key,hz] of Object.entries(flight.hz)){flightSum[key]=(flightSum[key]||0)+hz/batches;flightPeak[key]=Math.max(flightPeak[key]||0,hz);}
+    if(body.y>0)airSeconds+=.01;if(body.y>.5&&body.flightPower>.6)poweredSeconds+=.01;maxHeight=Math.max(maxHeight,body.y);world.advance(body,body.rates,.01);path+=Math.hypot(body.x-x,body.z-z);
    }
-   const result={seed,name,seconds:batches*.01,neurons:nodeCount,compute:ready.compute,totalSpikes:total,pathMm:path,yaw:body.yaw,position:[body.x,body.z],meanRates:[...average],realTimeFactor:batches*10/wallMs};
+   const result={seed,name,seconds:batches*.01,neurons:nodeCount,compute:ready.compute,computeKernel:ready.computeKernel,takeoffs:body.takeoffs,airSeconds,maxHeightMm:maxHeight,poweredSeconds,appliedFlightMeanHz:flightSum,appliedFlightPeakHz:flightPeak,totalSpikes:total,pathMm:path,yaw:body.yaw,position:[body.x,body.z],meanRates:[...average],realTimeFactor:batches*10/wallMs};
    records.push(result);console.log(JSON.stringify(result));generation++;
-   if(name==='quiet'){assert.equal(total,0);assert.equal(path,0);}
-   if(name==='disconnected'){assert.equal(path,0);assert(average.every(r=>r===0));}
+   if(name==='motor-output-cut'){assert.equal(poweredSeconds,0);assert(maxHeight<.4);}
+   if(name==='environment'&&seconds>=5){assert(body.takeoffs>0);assert(poweredSeconds>.1);}
+   if(name==='quiet'){assert.equal(total,0);assert.equal(path,0);assert.equal(body.takeoffs,0);}
+   if(name==='disconnected'){assert.equal(path,0);assert(average.every(r=>r===0));assert.equal(body.takeoffs,0);assert(Object.values(flightSum).every(r=>r===0));}
   }
  }finally{
   brain.terminate();
@@ -49,7 +58,7 @@ for(const seed of seeds){
   }
  }
 }
-for(const seed of seeds){
+if(!cases)for(const seed of seeds){
  const runs=records.filter(r=>r.seed===seed),background=runs.find(r=>r.name==='background'),environment=runs.find(r=>r.name==='environment');
  assert(background.pathMm>0&&environment.pathMm>0,'The complete graph must recruit walking');
  assert(environment.meanRates.some((r,i)=>Math.abs(r-background.meanRates[i])>.01),'Environment must change downstream activity');
@@ -58,4 +67,4 @@ for(const seed of seeds){
  assert(Math.abs(left.pathMm-right.pathMm)+Math.abs(left.yaw-right.yaw)>1e-5,'Light direction must change body motion');
  assert(left.meanRates.some((r,i)=>Math.abs(r-right.meanRates[i])>.01),'Light direction must reach downstream readouts');
 }
-console.log(JSON.stringify({status:'PASS',seeds,scope:'paired sensory and background controls; no attraction or foraging guarantee'}));
+console.log(JSON.stringify({status:'PASS',seeds,cases:cases||'all',scope:'paired sensory and flight-output controls; no attraction or foraging guarantee'}));

@@ -7,6 +7,8 @@ const integer = x => Number.isSafeInteger(x) && x>=0;
 const rate = x => Number.isFinite(x) && x>=0 && x<=300;
 export function validateInit(m) {
   if(m.type!=='init' || m.protocol!==PROTOCOL || !['malecns-v1.0-full','malecns-v1.0-retained'].includes(m.model) ||
+    (m.spikeEncoding!==undefined && m.spikeEncoding!=='index-count/1') ||
+    (m.spikeEncoding==='index-count/1' && m.metadata!==true) ||
     (m.compute!==undefined && !['cpu','cuda'].includes(m.compute)) ||
     (m.inputMode!==undefined && !['sensory','assisted'].includes(m.inputMode)) ||
     (m.dynamics!==undefined && !['reference','adaptive'].includes(m.dynamics)) ||

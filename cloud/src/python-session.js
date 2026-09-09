@@ -6,7 +6,7 @@ import { sensoryPopulations } from '../../fly-host/src/habitat.js';
 import { fileURLToPath } from 'node:url';
 /** JSON-lines bridge; a failed CUDA request never falls back to CPU. */
 export class PythonSession extends EventEmitter {
-  constructor({python,directory,format,seed,neurons,device='cuda',profile='reference'}) {
+  constructor({python,directory,format,seed,neurons,device='cuda',profile='reference',indexedSpikes=false}) {
     super();this.stopping=false;this.buffer='';
     this.child=spawn(python,['-u',fileURLToPath(new URL('../python/session.py',import.meta.url)),
       '--model',directory,'--format',format,'--seed',String(seed),'--device',device,'--profile',profile],{stdio:['pipe','pipe','pipe']});
@@ -23,7 +23,7 @@ export class PythonSession extends EventEmitter {
     });
     const groups=populations(neurons);
     const mask=backgroundMask(neurons);
-    this.postMessage({type:'configure',backgroundIndices:Array.from({length:neurons.length},(_,i)=>i).filter(i=>mask[i]),backgroundParameters:BACKGROUND,sensory:sensoryPopulations(neurons),readout:CHANNELS.map(key=>groups[key]),envelopes:PULSE_ENVELOPES});
+    this.postMessage({type:'configure',indexedSpikes,backgroundIndices:Array.from({length:neurons.length},(_,i)=>i).filter(i=>mask[i]),backgroundParameters:BACKGROUND,sensory:sensoryPopulations(neurons),readout:CHANNELS.map(key=>groups[key]),envelopes:PULSE_ENVELOPES});
     this.child.on('error',error=>this.emit('error',error));
     this.child.stdin.on('error',error=>{if(!this.stopping)this.emit('error',error);});
     this.child.on('exit',code=>this.emit('exit',code));

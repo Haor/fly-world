@@ -79,9 +79,32 @@ not imply exact long-duration full-graph agreement.
 
 PyTorch CPU parity and Linux CUDA execution on an RTX 4090 D were tested.
 Native Windows GPU execution remains a separate target acceptance check.
-The existing Compose template remains CPU-only; use native Windows for CUDA. CUDA
-Graphs, fused kernels, and guaranteed real-time speed are not implemented.
+The existing Compose template remains CPU-only; use native Windows for CUDA. Adaptive dynamics now have fused event kernels and CUDA Graph. The recorded speed applies only to the tested environment; it is not a native Windows guarantee.
 
 ## Adaptive profile
 
 The station uses experimental autonomous dynamics. The CUDA check script now tests both profiles, then runs the full-model smoke with adaptive dynamics. A paired sensory benchmark is available as `node cloud/tools/check-autonomy.js` with the same token and URL environment variables. See [equations and recorded GPU evidence](../../fly-host/docs/autonomous-dynamics.md). The validated Linux GPU used its existing PyTorch 2.5.1+cu124 environment; upgrading it was not required. Match CUDA wheels to the driver and Python version on a new Windows installation.
+
+
+## Event CUDA on Linux / WSL2
+
+Adaptive CUDA selects `triton-events` when the configured Python can import Triton. It propagates only outgoing edges of neurons that fired, accumulates integer synapse counts, and fuses state updates. CUDA Graph captures 100-step batches. The full node and edge sets are unchanged. Without Triton, the service uses `torch-csr` with the same equations. `ready.computeKernel` identifies the implementation.
+
+The tested environment is Linux, RTX 4090 D, Python 3.12.3, PyTorch 2.5.1+cu124, and Triton 3.1.0. Reuse an existing compatible environment; no driver replacement is required. For a new environment, use the Triton version required by its PyTorch distribution. [WSL2 CUDA](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gpu-compute) can run a Linux service on Windows. This project's event kernels have not been verified on WSL2 or native Windows.
+
+From the repository root in an existing Linux CUDA environment:
+
+```sh
+python cloud/tools/check-torch.py --device cuda --profile adaptive --engine events
+python cloud/tools/check-event-cuda.py
+export CUDA_PYTHON="$(command -v python)"
+export MODEL_DIR="$PWD/cloud/models/malecns-full"
+export NEURAL_TOKEN_FILE="$PWD/cloud/secrets/neural-token"
+node cloud/src/server.js
+```
+
+In another terminal, set the same `NEURAL_TOKEN_FILE` and run `node cloud/tools/benchmark.js`. The default endpoint is `ws://127.0.0.1:9000/neural`; override it with `NEURAL_URL`. Set `BENCH_BATCHES=1000` for 10 neural seconds after one warmup second. The report separates compute from API round trips and gives mean real-time factors, P50, P95, and maximum batch times. Initialization and metadata transfer are excluded.
+
+See [recorded performance](../../fly-host/docs/validation/realtime-cuda.json). Mean real-time throughput does not guarantee a 10 ms deadline for every batch or real-time operation over the internet. Browser pacing uses the actual round trip, without adding a second delay after network time.
+
+A Mac client connected to the same server through SSH achieved 0.128×: 3 neural seconds took about 23.48 wall seconds. API P50 was 85.92 ms and P95 was 120.58 ms. This includes network transport and client decoding, but not browser rendering. Server-local real-time throughput does not imply real-time remote interaction.

@@ -5,7 +5,7 @@ import { antennaSamples, Olfaction, forageDrive } from './olfaction.js';
 export const TILE_SCALE = 0.16;
 export const tileToMM = t => (t - 2.5) / TILE_SCALE;
 export const mmToTile = x => 2.5 + x * TILE_SCALE;
-export const odorRateAt = (x, z, food = FOOD) => 25 * Math.exp(-Math.hypot(x - food.x, z - food.z) / 7);
+export const odorRateAt = (x, z, food = FOOD, height = 0) => 25 * Math.exp(-Math.hypot(x - food.x, z - food.z, Math.max(0,height)) / 7);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 export const FOOD = Object.freeze({ x: tileToMM(1), z: tileToMM(4), radius: 1.4 });
 export const ROCK = Object.freeze({ x: tileToMM(5), z: tileToMM(2), radius: 2.2 });
@@ -74,7 +74,7 @@ export class Habitat {
     if (turning && this.options.mode !== 'sensory') s[word & 1 ? 'left' : 'right'] = 65 * gain;
     if (this.options.taste && eatingContact) s.sugar = 100;
     if (this.options.odor) {
-      const odor = this.olfaction.sample(antennaSamples(pose, odorRateAt), t);
+      const odor = this.olfaction.sample(antennaSamples(pose, (x,z)=>odorRateAt(x,z,FOOD,pose.y)), t);
       Object.assign(s, {odorLeft: odor.odorLeft, odorRight: odor.odorRight,
         rawLeft: odor.rawLeft, rawRight: odor.rawRight, odorTrend: odor.trend,
         odor: (odor.odorLeft + odor.odorRight) / 2});

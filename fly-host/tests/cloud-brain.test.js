@@ -63,3 +63,19 @@ test('metadata gaps and wrong compute fail instead of quietly showing the retain
     assert.equal(events.at(-1).type,'error');assert(brain.closed);
   }
 });
+test('negotiated model indices retain full spikes and reject missing, duplicate, or out-of-range entries',()=>{
+ for(const broken of [null,'duplicate','outside','missing']){
+  const events=[],brain=new CloudBrain({url:'ws://localhost',neurons:[],Socket,onMetadata:()=>{}});
+  brain.onmessage=e=>events.push(e.data);brain.postMessage({type:'init'});brain.socket.onopen();
+  assert.equal(brain.socket.sent[0].spikeEncoding,'index-count/1');
+  brain.socket.emit({...ready,spikeEncoding:'index-count/1',metadata:{rows:2},model:{...ready.model,neurons:2}});
+  brain.socket.emit({type:'metadata',offset:0,neurons:[['10','','','','',0,null],['20','','','','',0,null]],complete:true});
+  brain.postMessage({type:'step',sensory:{}});
+  const firing=broken==='duplicate'?[1,1]:broken==='outside'?[2]:[1],counts=firing.map(()=>1);
+  brain.socket.emit({type:'result',requestId:1,generation:0,tick:100,steps:100,total:broken==='missing'?2:counts.length,
+   wallMs:1,rates:[0,0,0,0,0,0,0],firing,counts});
+  assert.equal(events.at(-1).type,broken?'error':'result');
+  if(!broken)assert.deepEqual([...events.at(-1).firing],[1]);
+  brain.terminate();
+ }
+});

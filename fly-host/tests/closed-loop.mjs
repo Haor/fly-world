@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import { BrainCPU } from '../src/brain.js';
 import { populations, decodeCounts } from '../src/stimulus.js';
 import { Habitat, FOOD, BOUND, sensoryPopulations, addSensoryRates } from '../src/habitat.js';
+import { FlightReadout } from '../src/flight-readout.js';
 import { FlyController } from '../src/controller.js';
 import { loadLocalGraph } from './load-graph.js';
 
 const graph = loadLocalGraph(), brain = new BrainCPU(graph);
+const flightReadout=new FlightReadout(graph.neurons);
 const groups = populations(graph.neurons), sensory = sensoryPopulations(graph.neurons);
 const input = new Float32Array(graph.n);
 const results = [];
@@ -20,7 +22,8 @@ function run(name, seconds, options = {}, configure = () => {}, silenced = false
     input.fill(0);
     addSensoryRates(input, sensory, world.sense(body));
     const result = brain.batch(100, input, silenced);
-    body.advance(decodeCounts(result.counts, groups, 100), .01, world.feeding);
+    const firing=[],counts=[];for(let j=0;j<graph.n;j++)if(result.counts[j]){firing.push(j);counts.push(result.counts[j]);}
+    body.advance(decodeCounts(result.counts, groups, 100), .01, world.feeding,flightReadout.decode({firing,counts,steps:100}));
     world.advance(body, body.rates, .01);
     peakSpikes = Math.max(peakSpikes, result.total);
     peakMN9 = Math.max(peakMN9, body.rates[6]);

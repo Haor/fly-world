@@ -11,7 +11,11 @@ from engine import TorchBrain
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--device',choices=['cpu','cuda'],default='cuda')
 parser.add_argument('--profile',choices=['reference','adaptive'],default='reference')
+parser.add_argument('--engine',choices=['torch','events'],default='torch')
 args=parser.parse_args()
+if args.engine=='events':
+    from event_cuda import EventCudaBrain
+    TorchBrain=EventCudaBrain
 root=Path(__file__).resolve().parents[2]
 script="""
 import {BrainCPU,randomWord} from './fly-host/src/brain.js';
@@ -40,4 +44,4 @@ for k,expected in enumerate(reference['runs']):
 brain.reset()
 assert brain.tick==0
 assert not brain.batch(100,np.zeros(5)).any()
-print(json.dumps({'status':'PASS','device':args.device,'profile':args.profile,'steps':800,'seed':37,'maxVoltageErrorMv':max_error,'resetToRest':True}))
+print(json.dumps({'status':'PASS','device':args.device,'engine':args.engine,'profile':args.profile,'steps':800,'seed':37,'maxVoltageErrorMv':max_error,'resetToRest':True}))

@@ -1,3 +1,4 @@
+import { FlightReadout } from './flight-readout.js';
 import { FlyController } from './controller.js';
 import { Habitat } from './habitat.js';
 import { validateResult } from './neural-contract.js';
@@ -16,6 +17,7 @@ export class Simulation {
     this.dynamics='adaptive';this.background=true;
     this.phase = 'idle'; this.detail = ''; this.lastResult = 0;
   }
+  setNeurons(neurons) { this.flightReadout = new FlightReadout(neurons); }
   emit() { this.onState(this); }
   arm(ms) {
     clearTimeout(this.watchdog);
@@ -42,7 +44,7 @@ export class Simulation {
         this.detail = `WebGPU 未通过检查：${m.message}。正在启用 JavaScript 计算。`; this.emit();
       } else if (m.type === 'ready') {
         clearTimeout(this.watchdog);
-        this.model=m.model||{id:'malecns-v1.0-retained',neurons:166700};this.compute=m.compute||m.backend;this.projectionSize=m.projectionSize||166700;
+        this.model=m.model||{id:'malecns-v1.0-retained',neurons:166700};this.compute=m.compute||m.backend;this.computeKernel=m.computeKernel;this.projectionSize=m.projectionSize||166700;
         this.backend = m.backend; this.ready = true; this.phase = 'ready';
         this.emit(); this.request();
       } else if (m.type === 'reset') {
@@ -73,15 +75,16 @@ export class Simulation {
     const rate = m.steps * .1 / Math.max(elapsed,.001);
     this.speed = this.speed ? this.speed*.85+rate*.15 : rate; this.lastResult = now;
     const dt=m.steps*.0001;
-    this.body.advance(m.rates,dt,this.world.feeding);
+    const flight=this.flightReadout?.decode(m);
+    this.body.advance(m.rates,dt,this.world.feeding,flight);
     const pose=this.world.advance(this.body,this.body.rates,dt);
-    this.onResult({...m,pose,rates:this.body.rates,world:{...this.world.snapshot(),dynamics:this.dynamics,background:this.dynamics==='adaptive'&&this.background}});
-    this.timer=setTimeout(()=>this.request(),Math.max(0,10-m.wallMs));
+    this.onResult({...m,pose,flight,rates:this.body.rates,world:{...this.world.snapshot(),dynamics:this.dynamics,background:this.dynamics==='adaptive'&&this.background}});
+    this.timer=setTimeout(()=>this.request(),Math.max(0,10-(performance.now()-this.requestStarted)));
   }
   request() {
     clearTimeout(this.timer);
     if (!this.ready || this.paused || this.pending || this.resetting || !this.canStep()) return;
-    this.pending = true;
+    this.pending = true;this.requestStarted=performance.now();
     this.worker.postMessage({type:'step', generation:this.generation, silenced:!!this.silenced,background:this.dynamics==='adaptive'&&this.background, sensory:this.world.sense(this.body)});
     this.arm(60000);
   }

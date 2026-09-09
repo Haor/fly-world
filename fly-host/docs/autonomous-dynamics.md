@@ -42,7 +42,7 @@ selected motor readout. Sensory, descending, and motor classes are not targets.
 A separate seeded random stream makes paired controls reproducible. Disabling
 the environment leaves background activity enabled. The zero-input reset disables both.
 
-The adaptive body decoder consumes the same seven firing-rate channels. It
+The base decoder keeps seven rate channels. Flight separately reads descending and motor neurons from complete spike records. It
 removes the reference 6/15 Hz walk/turn dead zones, with walk and turn saturation
 scales of 12/20 Hz. Zero output still produces zero motion. The body remains a
 reduced kinematic model with contact constraints, not muscle-level simulation.
@@ -88,18 +88,10 @@ and disconnected controls had zero displacement and zero motor output. Changing
 light direction changed downstream activity, but did not establish consistent
 phototaxis. The one-second sensory runs moved 1.19–1.37 mm. Compute throughput was
 about 0.10 neural seconds per wall second; this is not real-time performance.
+## Flight interface
 
-## Current flight interface gap
+Flight now decodes takeoff events, DLM/DVM muscle activity, DNg02 subtype modulation, and landing responses from complete spike records. The old GF smoothing gate and fixed flight duration are removed. See [mappings, equations, sources, and causal controls](flight.md).
 
-The body reads DNp01 for fast escape only. It has no separate spontaneous-takeoff,
-sustained-flight-power, airborne steering, or landing channels. The pooled rate
-is smoothed over 80 ms and must exceed 100 Hz to take off; landing follows after
-0.35–0.9 seconds. One DNp01 spike in a 10 ms batch gives 50 Hz for the two-cell
-population and only about 5.88 Hz after smoothing. Sparse events cannot trigger
-this strong-input gate.
+## Current event CUDA performance
 
-[GF spike-timing research](https://www.nature.com/articles/nn.3741) concerns fast
-escape selection, not a sustained flight controller. [DesktopFly's takeoff code](https://github.com/DenisSergeevitch/desktop-fly/blob/32b00011e83c3dc85fa3ea0b3934155b04f1635d/FlyModel.swift#L708)
-also uses an arousal-dependent random takeoff probability. Future work must separate
-escape events from sustained flight readouts and test sensory recruitment. A lower
-threshold or random takeoff rule alone does not establish connectome-driven flight.
+The 0.10× result above describes the earlier PyTorch CSR path. Fused event CUDA and complete indexed spike frames achieved 1.10× server-local API throughput over 10 neural seconds on the same GPU model; compute throughput was 1.92×. API P95 was 10.63 ms per 10 ms batch. This is mean real-time throughput, not a hard deadline guarantee. See [performance and numerical checks](validation/realtime-cuda.json).

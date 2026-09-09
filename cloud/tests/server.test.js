@@ -129,3 +129,16 @@ test('adaptive dynamics are negotiated and reference sessions reject background 
  const reference=await client(f.url);reference.send(init);await reference.next();reference.send({...step(1),background:true});
  assert.equal((await reference.next()).code,'BACKGROUND_REQUIRES_ADAPTIVE');
 });
+test('optional indexed spike frames use the selected metadata order and preserve counts',async t=>{
+ const f=await fixture(t),c=await client(f.url);
+ c.send({...init,metadata:true,spikeEncoding:'index-count/1'});
+ assert.equal((await c.next()).spikeEncoding,'index-count/1');assert.equal((await c.next()).type,'metadata');
+ const brain=new BrainCPU(graph),sensory=sensoryPopulations(graph.neurons);
+ for(let i=1;i<=5;i++){
+  const m=step(i);c.send(m);const result=await c.next();
+  const expected=brain.batch(100,addSensoryRates(new Float32Array(graph.n),sensory,m.sensory));
+  const actual=new Uint32Array(graph.n);result.firing.forEach((index,j)=>actual[index]=result.counts[j]);
+  assert.deepEqual(actual,expected.counts);assert.equal(result.total,expected.total);assert.equal(result.spikes,undefined);
+ }
+ const bad=await client(f.url);bad.send({...init,spikeEncoding:'index-count/1'});assert.equal((await bad.next()).code,'INVALID_INIT');
+});

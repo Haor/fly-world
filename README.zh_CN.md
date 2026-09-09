@@ -22,6 +22,7 @@ Windows 将 `python3` 替换为 `py -3.13`。打开 `http://127.0.0.1:8768` 并�
 
 - [Windows PC、Linux/macOS、Docker 与跨机连接指南](cloud/docs/deployment.zh_CN.md)
 - [Windows CUDA 安装与验收](cloud/docs/cuda-windows.zh_CN.md)
+- [神经驱动飞行与验证](fly-host/docs/flight.zh_CN.md)
 - [官方骨架与神经空间图](fly-host/docs/anatomy.zh_CN.md)
 - [API 文档](cloud/docs/api.zh_CN.md)
 - [推理服务实现](cloud/README.zh_CN.md)

@@ -1,0 +1,90 @@
+{
+  "hardware": "NVIDIA RTX 4090 D",
+  "python": "3.12.3",
+  "torch": "2.5.1+cu124",
+  "triton": "3.1.0",
+  "scope": "single session, server-local WebSocket adapter, full graph, complete indexed spike frames, initialization excluded",
+  "loopback": {
+    "model": {
+      "id": "malecns-v1.0-full",
+      "scope": "full",
+      "coverage": "all-annotated-bodies",
+      "neurons": 211577,
+      "edges": 26028386,
+      "synapses": 125365933,
+      "dtMs": 0.1,
+      "connectomeSha256": "17376fa6f9cc97c2cc3ccc37d6694989265d0fe478d0266dd4ae777180e6cc0b"
+    },
+    "computeKernel": "triton-events",
+    "warmupNeuralSeconds": 1,
+    "neuralSeconds": 10,
+    "totalSpikes": 4337177,
+    "compute": {
+      "realTimeFactor": 1.918343012507423,
+      "p50Ms": 5.206823348999023,
+      "p95Ms": 5.926225334405899,
+      "maxMs": 8.89027863740921
+    },
+    "api": {
+      "realTimeFactor": 1.1032735783192744,
+      "p50Ms": 8.972207999999227,
+      "p95Ms": 10.631894000000102,
+      "maxMs": 26.328105999999025
+    }
+  },
+  "numericalChecks": [
+    {
+      "status": "PASS",
+      "device": "cuda",
+      "engine": "events",
+      "profile": "adaptive",
+      "steps": 800,
+      "seed": 37,
+      "maxVoltageErrorMv": 1.9073486328125e-05,
+      "resetToRest": true
+    },
+    {
+      "status": "PASS",
+      "neurons": 1025,
+      "edges": 24600,
+      "steps": 1200,
+      "maxVoltageErrorMv": 4.1961669921875e-05,
+      "resetReplay": true,
+      "graphVariants": 4
+    }
+  ],
+  "limits": [
+    "mean throughput is not a hard 10 ms deadline",
+    "Windows and WSL2 event kernels are not yet verified",
+    "browser rendering is not included; remote SSH throughput was measured separately"
+  ],
+  "remoteSSH": {
+    "scope": "Mac Node client over an SSH tunnel to the same server; complete indexed spike frames; browser rendering excluded",
+    "model": {
+      "id": "malecns-v1.0-full",
+      "scope": "full",
+      "coverage": "all-annotated-bodies",
+      "neurons": 211577,
+      "edges": 26028386,
+      "synapses": 125365933,
+      "dtMs": 0.1,
+      "connectomeSha256": "17376fa6f9cc97c2cc3ccc37d6694989265d0fe478d0266dd4ae777180e6cc0b"
+    },
+    "computeKernel": "triton-events",
+    "warmupNeuralSeconds": 1,
+    "neuralSeconds": 3,
+    "totalSpikes": 1299153,
+    "compute": {
+      "realTimeFactor": 1.2823647141920436,
+      "p50Ms": 7.745269685983658,
+      "p95Ms": 8.457213640213013,
+      "maxMs": 12.528650462627411
+    },
+    "api": {
+      "realTimeFactor": 0.12777297772156934,
+      "p50Ms": 85.91675000000032,
+      "p95Ms": 120.57549999999901,
+      "maxMs": 199.6454159999994
+    }
+  }
+}

@@ -61,13 +61,14 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
           const selected=catalog.find(entry=>entry.model.id===m.model);selectedModel=selected;
           if(!selected)throw Error('MODEL_UNAVAILABLE');
           const compute=m.compute||'cpu';
+          const indexedSpikes=m.spikeEncoding==='index-count/1';
           if(compute==='cuda' && !cudaPython)throw Error('CUDA_UNAVAILABLE');
           inputMode=m.inputMode||'assisted';dynamics=m.dynamics||'reference';
           selected.graph.background=backgroundMask(selected.graph.neurons);
           sessions.add(ws);authenticated=true;clearTimeout(deadline);
           deadline=setTimeout(()=>fail('MODEL_TIMEOUT'),60000);
-          worker=compute==='cuda' ? new PythonSession({python:cudaPython,directory:selected.directory,format:selected.format,seed:m.seed,neurons:selected.graph.neurons,profile:dynamics}) :
-            new Worker(new URL('./session.js',import.meta.url),{workerData:{graph:selected.graph,seed:m.seed,profile:dynamics}});
+          worker=compute==='cuda' ? new PythonSession({python:cudaPython,directory:selected.directory,format:selected.format,seed:m.seed,neurons:selected.graph.neurons,profile:dynamics,indexedSpikes}) :
+            new Worker(new URL('./session.js',import.meta.url),{workerData:{graph:selected.graph,seed:m.seed,profile:dynamics,indexedSpikes}});
           worker.on('error',()=>fail('WORKER_FAILURE'));
           worker.on('exit',()=>{if(!closed)fail('WORKER_EXIT');});
           worker.on('message',result=>{
@@ -75,7 +76,7 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
             if(result.type==='loaded') {
               clearTimeout(deadline);ready=true;
               send({type:'ready',protocol:PROTOCOL,sensoryEncoding:SENSORY_ENCODING,channels:CHANNELS,
-                inputMode,compute,dynamics,dynamicsEncoding:DYNAMICS_ENCODING,model:selected.model,metadata:{rows:selected.graph.n}});
+                inputMode,compute,spikeEncoding:indexedSpikes?'index-count/1':'body-id/1',computeKernel:result.computeKernel||'javascript',dynamics,dynamicsEncoding:DYNAMICS_ENCODING,model:selected.model,metadata:{rows:selected.graph.n}});
               if(m.metadata===true) {
                 const rows=selected.graph.neurons;
                 for(let offset=0;offset<rows.length;offset+=4096)

@@ -29,6 +29,7 @@ model inference with the CPU reference engine or optional PyTorch CUDA backend.
 
 - [Windows PC, Linux/macOS, Docker, and remote connection guide](cloud/docs/deployment.md)
 - [Windows CUDA installation and checks](cloud/docs/cuda-windows.md)
+- [Neural flight and verification](fly-host/docs/flight.md)
 - [Official anatomy and neural graph](fly-host/docs/anatomy.md)
 - [API reference](cloud/docs/api.md)
 - [Service implementation](cloud/README.md)

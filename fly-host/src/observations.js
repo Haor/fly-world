@@ -1,4 +1,4 @@
-export const BEHAVIORS = Object.freeze({'At rest':'静止观察','Walking':'步行探索','Walking backward':'向后移动','Turning left':'向左转向','Turning right':'向右转向','Feeding':'接触进食','Taking off':'起飞','Escape flight':'逃逸飞行','Landing':'降落'});
+export const BEHAVIORS = Object.freeze({'At rest':'静止观察','Walking':'步行探索','Walking backward':'向后移动','Turning left':'向左转向','Turning right':'向右转向','Feeding':'接触进食','Taking off':'起飞','Escape flight':'逃逸飞行','Landing':'降落','Flight':'飞行','Jumping':'短跳'});
 export const behaviorLabel = value => BEHAVIORS[value] || value;
 /** Bounded, neural-clock records. No events or chart values are fabricated. */
 export class Observations {

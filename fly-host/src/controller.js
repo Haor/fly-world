@@ -32,12 +32,14 @@ export class FlyController {
     this.mode = 'ground';
     this.escapeAge = 0;
     this.landingAge = 0;
-    this.quietTime = 0;
     this.cooldown = 0;
-    this.escapeArmed = true;
+    this.flightRates = {steerLeft:0,steerRight:0,landing:0,muscleLeft:0,muscleRight:0};
+    this.prepUntil = 0;
+    this.flightPower = 0;
+    this.launchDirection = 1;
     this.takeoffs = 0;
   }
-  advance(input, dt, feeding = 0) {
+  advance(input, dt, feeding = 0, flight = null) {
     if (
       input.length !== 7 ||
       !Array.from(input).every(Number.isFinite) ||
@@ -48,7 +50,7 @@ export class FlyController {
       throw Error('Invalid neural controller input');
     for (let i = 0; i < 7; i++)
       this.rates[i] = relax(this.rates[i], Math.max(0, input[i]), dt, 0.08);
-    const [wl, wr, tl, tr, back, escape] = this.rates;
+    const [wl, wr, tl, tr, back] = this.rates;
     const adaptive=this.profile==='adaptive';
     const walking = Math.max(0, (wl + wr) / 2 - (adaptive?0:6)),
       reverse = Math.max(0, back - 25);
@@ -56,58 +58,51 @@ export class FlyController {
     const groundSpeed = (8 * Math.tanh(walking / (adaptive?12:30)) - 4 * Math.tanh(reverse / 90)) * (1 - clamp(feeding, 0, 1));
     this.yawRate = relax(this.yawRate, 3.8 * Math.tanh(turn / (adaptive?20:45)), dt, 0.04);
     this.cooldown = Math.max(0, this.cooldown - dt);
-    if (this.mode === 'ground' && escape < 45) this.escapeArmed = true;
-    if (this.mode === 'ground' && escape > 100 && this.cooldown === 0 && this.escapeArmed) {
+    if (flight) {
+      for (const key of Object.keys(this.flightRates))
+        this.flightRates[key] = relax(this.flightRates[key], flight.hz[key], dt, key.startsWith('muscle') ? .08 : .04);
+      if (flight.spikes.backwardPrep > 0) this.prepUntil = this.time + .05;
+    } else {
+      for (const key of Object.keys(this.flightRates))
+        this.flightRates[key] = relax(this.flightRates[key], 0, dt, .04);
+    }
+    const backwardLaunch = flight?.spikes.backwardJump > 0 && this.time < this.prepUntil;
+    const launchEvent = flight && (flight.spikes.giantFiber > 0 || flight.spikes.forward > 0 || backwardLaunch);
+    if (this.mode === 'ground' && this.cooldown === 0 && launchEvent) {
       this.mode = 'escape';
       this.escapeAge = 0;
-      this.quietTime = 0;
-      this.escapeArmed = false;
       this.vy = 80;
+      this.launchDirection = backwardLaunch && !flight.spikes.giantFiber && !flight.spikes.forward ? -1 : 1;
       this.takeoffs++;
     }
+    // DLM/DVM motor spikes maintain asynchronous muscle activation.
+    // The rise/fall constants follow Gordon & Dickinson (2006); the rate-to-lift
+    // gain is a reduced-body calibration, not a measured calcium concentration.
+    const muscleTarget = Math.tanh((this.flightRates.muscleLeft + this.flightRates.muscleRight) / 10);
+    this.flightPower = relax(this.flightPower, muscleTarget, dt, muscleTarget > this.flightPower ? .442 : 1.79);
     if (this.mode === 'escape') {
       this.escapeAge += dt;
-      this.quietTime = escape < 45 ? this.quietTime + dt : 0;
-      // Escape activity sustains flight for 0.35–0.9 neural seconds.
-      if ((this.escapeAge >= 0.35 && this.quietTime >= 0.06) || this.escapeAge >= 0.9) {
-        this.mode = 'landing';
-        this.landingAge = 0;
-      }
+      if (this.flightRates.landing > 15) {this.mode = 'landing';this.landingAge = 0;}
     }
     const airborne = this.mode !== 'ground';
     if (airborne) {
-      if (this.mode === 'landing') this.landingAge += dt;
       const landing = this.mode === 'landing';
-      const targetHeight = landing ? 0 : 2.2 + 0.8 * clamp(escape / 250, 0, 1);
-      this.velocity = relax(
-        this.velocity,
-        landing ? groundSpeed : 16 + 8 * clamp(escape / 250, 0, 1),
-        dt,
-        landing ? 0.12 : 0.06,
-      );
-      // Reduced-order wing lift: critically damped altitude control plus gravity.
-      // Substeps resolve takeoff/ground contact independently of the 10 ms readout.
-      const parts = Math.ceil(dt / 0.002),
-        h = dt / parts;
+      if (landing) this.landingAge += dt;
+      const power = landing ? 0 : this.flightPower;
+      this.velocity = relax(this.velocity, this.launchDirection * 24 * power, dt, .06);
+      this.yawRate = relax(this.yawRate, 3.8 * Math.tanh((this.flightRates.steerLeft - this.flightRates.steerRight) / 20), dt, .04);
+      const parts = Math.ceil(dt / .001), h = dt / parts;
       for (let k = 0; k < parts; k++) {
-        const omega = landing ? 16 : 24;
-        const lift = clamp(
-          9810 + omega * omega * (targetHeight - this.y) - 2 * omega * this.vy,
-          0,
-          16000,
-        );
+        const lift = clamp(9810 + 24 * 24 * (3 - this.y) - 48 * this.vy, 0, 16000 * power);
         const acceleration = lift - 9810;
-        this.y = Math.max(0, this.y + this.vy * h + 0.5 * acceleration * h * h);
+        this.y += this.vy * h + .5 * acceleration * h * h;
         this.vy += acceleration * h;
-        if (landing && this.y < 0.025 && this.vy <= 0) {
-          this.y = 0;
-          this.vy = 0;
-          this.mode = 'ground';
-          this.cooldown = 0.2;
+        if (this.y <= 0 && this.vy <= 0) {
+          this.y = 0;this.vy = 0;this.mode = 'ground';this.cooldown = .2;
           break;
         }
       }
-    } else this.velocity = relax(this.velocity, groundSpeed, dt, 0.055);
+    } else this.velocity = relax(this.velocity, groundSpeed, dt, .055);
     this.flightBlend = clamp(this.y / 0.65, 0, 1);
     this.launch = this.mode === 'escape' ? clamp(1 - this.escapeAge / 0.06, 0, 1) : 0;
     this.landing = this.mode === 'landing' ? clamp(this.landingAge / 0.08, 0, 1) : 0;
@@ -140,7 +135,7 @@ export class FlyController {
         : this.mode === 'escape'
           ? this.escapeAge < 0.08
             ? 'Taking off'
-            : 'Escape flight'
+            : this.flightPower > .6 ? 'Flight' : 'Jumping'
           : reverse > walking + 5
             ? 'Walking backward'
             : Math.abs(this.yawRate) > 0.3

@@ -58,10 +58,34 @@ node cloud/src/server.js
 
 ## 数值与性能边界
 
-CUDA 引擎使用 PyTorch CSR 稀疏乘法，复现本项目 LIF 更新顺序、18 步突触延迟、22 步不应期及固定种子 Poisson 输入；感觉群体和脉冲包络由 JavaScript 提供，不另写第二套映射。它不是直接运行 eon 的 FlyWire 权重。GPU 稀疏归约的浮点顺序与 CPU 不同，小图计数一致不保证完整图长时间逐脉冲相同。
+基础 CUDA 实现使用 PyTorch CSR 稀疏乘法，复现本项目 LIF 更新顺序、18 步突触延迟、22 步不应期及固定种子 Poisson 输入；感觉群体和脉冲包络由 JavaScript 提供，不另写第二套映射。它不是直接运行 eon 的 FlyWire 权重。GPU 稀疏归约的浮点顺序与 CPU 不同，小图计数一致不保证完整图长时间逐脉冲相同。
 
-本机 Mac 的 CPU 对照已通过；另在 RTX 4090 D 上使用 Python 3.12、PyTorch 2.5.1+cu124 验证了两套动力学的 CUDA 小图对照、全量推理和感觉闭环。原生 Windows 显卡环境仍需单独验收。现有 Docker Compose 是 CPU 部署模板；Windows CUDA 使用以上原生启动方式。本实现尚未做 CUDA Graph、融合内核或实时速度保证。
+本机 Mac 的 CPU 对照已通过；另在 RTX 4090 D 上使用 Python 3.12、PyTorch 2.5.1+cu124 验证了两套动力学的 CUDA 小图对照、全量推理和感觉闭环。原生 Windows 显卡环境仍需单独验收。现有 Docker Compose 是 CPU 部署模板；Windows CUDA 使用以上原生启动方式。自主动力学现在提供融合事件内核与 CUDA Graph；下述性能记录只适用于已验证的环境，不保证原生 Windows 具有相同速度。
 
 ## 自主动力学
 
 页面统一使用自主动力学。CUDA 验收脚本现在对两套配置做数值对照，再运行全量自主动力学联调。感觉对照可使用同样的令牌与地址环境变量运行 `node cloud/tools/check-autonomy.js`。见[方程与 GPU 结果](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。已验证的 Linux GPU 沿用现有 PyTorch 2.5.1+cu124，未要求升级；新装 Windows 时仍须匹配驱动、CUDA 轮子与 Python 版本。
+
+
+## Linux / WSL2 的事件 CUDA 路径
+
+当 CUDA Python 可以 `import triton` 时，自主动力学自动使用 `triton-events`。它只传播实际放电源的出边，以整数累计突触数，并融合神经状态更新；100 步批次使用 CUDA Graph。完整节点与连接数不变。原生 Windows 或其他未安装 Triton 的环境继续使用 `torch-csr`，模型方程不变；`ready.computeKernel` 明确标识所用实现。
+
+已在 Linux、RTX 4090 D、Python 3.12.3、PyTorch 2.5.1+cu124、Triton 3.1.0 验证。复用已有兼容环境即可，不需为此更换驱动。新装环境应使用 PyTorch 对应的依赖版本，勿混装不同版本的 Triton。Windows 可使用 [WSL2 CUDA](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gpu-compute) 运行 Linux 服务；本项目尚未在 WSL2 或原生 Windows 验证事件内核。
+
+在仓库根目录、已有 Linux CUDA 环境中执行：
+
+```sh
+python cloud/tools/check-torch.py --device cuda --profile adaptive --engine events
+python cloud/tools/check-event-cuda.py
+export CUDA_PYTHON="$(command -v python)"
+export MODEL_DIR="$PWD/cloud/models/malecns-full"
+export NEURAL_TOKEN_FILE="$PWD/cloud/secrets/neural-token"
+node cloud/src/server.js
+```
+
+另开终端，设置同样的 `NEURAL_TOKEN_FILE`，再执行 `node cloud/tools/benchmark.js`。默认地址是 `ws://127.0.0.1:9000/neural`，可用 `NEURAL_URL` 覆盖；`BENCH_BATCHES=1000` 测量 10 秒神经时间，另有 1 秒预热。报告分别给出服务计算与接口往返的实时倍率、中位数、95 分位和最长批次。初始化与元数据下载不计入稳定运行速度。
+
+参见[实测性能记录](../../fly-host/docs/validation/realtime-cuda.json)。同机接口平均达到实时不代表每个批次都在 10 ms 内完成，也不代表通过公网远程连接能实时。浏览器按每次真实往返时间安排下一步，不再在网络等待后重复补足计算间隔。
+
+Mac 经 SSH 隧道连接同一服务器的补充实测为 0.128×：3 秒神经时间约耗时 23.48 秒，接口中位数 85.92 ms，95 分位 120.58 ms。此结果包含网络传输与客户端解码，不包含浏览器渲染；不能把同机实时吞吐直接用于远程交互预期。

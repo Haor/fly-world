@@ -27,7 +27,7 @@ export class CloudBrain {
       this.socket=new this.Socket(this.url);
       this.socket.onopen=()=>{
         this.socket.send(JSON.stringify({type:'init',protocol:PROTOCOL,model:this.modelId,compute:this.compute,inputMode:this.inputMode,metadata:!!this.onMetadata,seed:this.seed,dynamics:this.dynamics,dynamicsEncoding:DYNAMICS_ENCODING,
-          dtMs:DT_MS,steps:STEP_COUNT,channels:CHANNELS,spikeIds:'body-id',sensoryEncoding:SENSORY_ENCODING,token:this.token}));
+          dtMs:DT_MS,steps:STEP_COUNT,channels:CHANNELS,spikeIds:'body-id',...(this.onMetadata?{spikeEncoding:'index-count/1'}:{}),sensoryEncoding:SENSORY_ENCODING,token:this.token}));
         this.token='';
       };
       this.socket.onmessage=e=>{try{this.receive(e.data);}catch{this.error('云端返回了无效或不兼容的数据');}};
@@ -60,6 +60,8 @@ export class CloudBrain {
       if(m.dynamics!==undefined && m.dynamics!==this.dynamics)throw Error('Dynamics mismatch');
       if(this.dynamics==='adaptive' && m.dynamicsEncoding!==DYNAMICS_ENCODING)throw Error('Unsupported dynamics');
       if(m.compute!==undefined && m.compute!==this.compute)throw Error('Compute mismatch');
+      if(m.spikeEncoding!==undefined&&!['body-id/1','index-count/1'].includes(m.spikeEncoding))throw Error('Unsupported spike encoding');
+      if(m.spikeEncoding==='index-count/1'&&!this.onMetadata)throw Error('Indexed spikes require complete metadata');
       this.handshake=m;
       if(this.onMetadata) {
         if(m.metadata?.rows!==m.model.neurons)throw Error('Missing full metadata');
@@ -96,19 +98,31 @@ export class CloudBrain {
       this.requests.delete(m.requestId);this.emit(m);return;
     }
     if(m.type!=='result' || request.type!=='step')throw Error('Unexpected response');
-    if(!Array.isArray(m.spikes)||m.spikes.length>500000)throw Error('Invalid spikes');
-    const firing=[],counts=[],seen=new Set();let sum=0;
-    for(const pair of m.spikes) {
-      if(!Array.isArray(pair)||pair.length!==2||typeof pair[0]!=='string'||!/^\d+$/.test(pair[0])||seen.has(pair[0])||
-        !Number.isInteger(pair[1])||pair[1]<1||pair[1]>STEP_COUNT)throw Error('Invalid spike');
-      seen.add(pair[0]);sum+=pair[1];
-      const i=this.byId.get(pair[0]);if(i===undefined && this.onMetadata)throw Error('Firing ID outside selected graph');if(i!==undefined){firing.push(i);counts.push(pair[1]);}
+    let firing=[],counts=[],sum=0;
+    if(this.handshake.spikeEncoding==='index-count/1') {
+      if(!Array.isArray(m.firing)||!Array.isArray(m.counts)||m.firing.length!==m.counts.length||m.firing.length>this.neurons.length)throw Error('Invalid indexed spikes');
+      let previous=-1;
+      for(let j=0;j<m.firing.length;j++) {
+        const i=m.firing[j],count=m.counts[j];
+        if(!Number.isInteger(i)||i<=previous||i>=this.neurons.length||!Number.isInteger(count)||count<1||count>STEP_COUNT)throw Error('Invalid indexed spike');
+        previous=i;sum+=count;
+      }
+      firing=m.firing;counts=m.counts;
+    } else {
+      if(!Array.isArray(m.spikes)||m.spikes.length>500000)throw Error('Invalid spikes');
+      const seen=new Set();
+      for(const pair of m.spikes) {
+        if(!Array.isArray(pair)||pair.length!==2||typeof pair[0]!=='string'||!/^\d+$/.test(pair[0])||seen.has(pair[0])||
+          !Number.isInteger(pair[1])||pair[1]<1||pair[1]>STEP_COUNT)throw Error('Invalid spike');
+        seen.add(pair[0]);sum+=pair[1];
+        const i=this.byId.get(pair[0]);if(i===undefined && this.onMetadata)throw Error('Firing ID outside selected graph');if(i!==undefined){firing.push(i);counts.push(pair[1]);}
+      }
     }
-    if(!Number.isSafeInteger(m.total)||sum>m.total)throw Error('Invalid total');
+    if(!Number.isSafeInteger(m.total)||sum>m.total||(this.onMetadata&&sum!==m.total))throw Error('Invalid total');
     this.requests.delete(m.requestId);
     this.emit({type:'result',generation:m.generation,tick:m.tick,steps:m.steps,total:m.total,
       wallMs:m.wallMs,rates:m.rates,firing:Uint32Array.from(firing),counts:Uint16Array.from(counts)});
   }
-  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',model:this.handshake.model,compute:this.compute,dynamics:this.dynamics,projectionSize:this.neurons.length});}
+  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',model:this.handshake.model,compute:this.compute,computeKernel:this.handshake.computeKernel,dynamics:this.dynamics,projectionSize:this.neurons.length});}
   terminate() {this.closed=true;this.token='';this.requests.clear();this.socket?.close();}
 }

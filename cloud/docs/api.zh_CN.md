@@ -104,3 +104,13 @@
 客户端在 `init` 中发送 `dynamics:"adaptive"` 与 `dynamicsEncoding:"adaptive-conductance/1"`，并检查 `ready` 同样确认二者。`dynamics:"reference"` 或省略时继续使用原电流型 LIF。`step.background` 为布尔值，省略时为 false，仅 adaptive 可设为 true。感觉模式仍拒绝人工运动输入和直接脉冲，重置会清空适应与电导状态。
 
 见[方程与开关](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。`smoke.js` 使用 `NEURAL_DYNAMICS=adaptive` 选择新配置，`check-autonomy.js` 固定使用纯感觉自主动力学。这是原版本 2 传输上的显式动力学协商，旧参考客户端行为不变。
+
+## 完整放电的紧凑编码
+
+`init` 可附加 `spikeEncoding:"index-count/1"`，且必须同时提供 `metadata:true`。仍保留 `spikeIds:"body-id"` 作为版本 2 的基础握手字段。新服务在 `ready.spikeEncoding` 确认 `index-count/1`；旧服务没有确认时，客户端继续读取原有 `spikes` 格式。
+
+确认紧凑编码后，结果帧以 `firing:[索引,…]`、`counts:[次数,…]` 替代 `spikes`。索引是本会话完整元数据中的零起点行号，严格递增；两个数组等长，每个次数为 1–100，次数总和必须等于 `total`。不会丢弃、抽样或裁剪放电。模型切换后必须重新载入元数据，不可复用旧索引。
+
+`ready.computeKernel` 报告实际实现：`javascript`、`torch-csr` 或 `triton-events`。CUDA 自主动力学在可导入 Triton 的环境使用融合事件内核和 CUDA Graph；未安装 Triton 时使用同一动力学的 PyTorch CUDA 实现。初始化包括图捕获；`ready` 表示已完成准备。`wallMs` 不含网络与客户端处理，端到端速度请使用 `node cloud/tools/benchmark.js` 测量。
+
+飞行读出由客户端使用当前元数据和完整放电计算，不新增人工运动输入。见[飞行映射](../../fly-host/docs/flight.zh_CN.md)。

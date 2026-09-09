@@ -49,14 +49,24 @@ def main():
         from engine import TorchBrain
     except ImportError:
         emit({'type':'failure','code':'TORCH_NOT_INSTALLED'});return
+    kernel='torch-csr'
+    if args.device=='cuda' and args.profile=='adaptive':
+        try:
+            import triton
+        except ModuleNotFoundError as exc:
+            if exc.name!='triton':raise
+        else:
+            from event_cuda import EventCudaBrain
+            TorchBrain=EventCudaBrain
+            kernel='triton-events'
     neurons,arrays=load_graph(args.model,args.format)
     signs=np.array([1 if r[4] in ('dopamine','octopamine','serotonin') else r[5] for r in neurons])
     brain=TorchBrain(len(neurons),arrays['offsets'],arrays['sources'],arrays['counts'],signs,args.seed,args.device,args.profile)
-    by_id={str(row[0]):i for i,row in enumerate(neurons)}
+    body_ids=np.array([str(row[0]) for row in neurons],dtype=object)
+    by_id={body:i for i,body in enumerate(body_ids)}
     pulses=[]
     # Population maps are supplied by the JavaScript owner, avoiding separate
     # sensory and readout definitions drifting between CPU and CUDA backends.
-    emit({'type':'loaded'})
     mapping=None
     for line in sys.stdin:
         m=json.loads(line)
@@ -68,6 +78,8 @@ def main():
             brain.background_kick=settings.get('kickMv',3.)
             brain.adapt_increment=settings.get('adaptMv',2.)
             brain.adapt_decay=float(np.exp(-.1/settings.get('adaptTauMs',200.)))
+            if hasattr(brain,'prepare'):brain.prepare()
+            emit({'type':'loaded','computeKernel':kernel})
             continue
         if mapping is None:raise ValueError('MISSING_POPULATIONS')
         typ=m['type']
@@ -96,10 +108,12 @@ def main():
             counts=brain.batch(m['steps'],rates,m['silenced'],m.get('background',False))
             readout=[float(counts[ids].mean()*10000/m['steps']) if ids else 0. for ids in mapping['readout']]
             fired=np.flatnonzero(counts)
+            spike_data=({'firing':fired.tolist(),'counts':counts[fired].tolist()} if mapping.get('indexedSpikes') else
+                        {'spikes':list(zip(body_ids[fired].tolist(),counts[fired].tolist()))})
             emit({'type':'result','requestId':m['requestId'],'generation':m['generation'],
                   'tick':brain.tick,'steps':m['steps'],'total':int(counts.sum()),
                   'wallMs':(time.perf_counter()-began)*1000,'rates':readout,
-                  'spikes':[[str(neurons[i][0]),int(counts[i])] for i in fired]})
+                  **spike_data})
         emit({'type':'processed'})
 
 
