@@ -1,0 +1,450 @@
+{
+  "status": "PASS",
+  "date": "2026-09-09",
+  "hardware": "NVIDIA GeForce RTX 4090 D 24 GB",
+  "python": "3.12.3",
+  "torch": "2.5.1+cu124",
+  "dynamicsEncoding": "adaptive-conductance/1",
+  "model": "malecns-v1.0-full",
+  "modelSha256": "17376fa6f9cc97c2cc3ccc37d6694989265d0fe478d0266dd4ae777180e6cc0b",
+  "seeds": [
+    1,
+    7,
+    19
+  ],
+  "limits": "Short matched-seed controls show downstream sensory effects, not reliable attraction, foraging, or long-term biological fidelity.",
+  "records": [
+    {
+      "seed": 1,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.10128396177556907
+    },
+    {
+      "seed": 1,
+      "name": "background",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 338120,
+      "pathMm": 1.699573897271243,
+      "yaw": 0.3495661358489839,
+      "position": [
+        -9.112035218579505,
+        2.925373678343002
+      ],
+      "meanRates": [
+        3.333333333333333,
+        3.666666666666666,
+        7.3333333333333295,
+        4.666666666666665,
+        4,
+        3,
+        8
+      ],
+      "realTimeFactor": 0.10068803050554784
+    },
+    {
+      "seed": 1,
+      "name": "environment",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 490926,
+      "pathMm": 1.3749643116650518,
+      "yaw": 0.2834988159786309,
+      "position": [
+        -9.161848865266625,
+        2.606677082630501
+      ],
+      "meanRates": [
+        1.9999999999999996,
+        2.666666666666666,
+        4.999999999999998,
+        3.9999999999999982,
+        1.5,
+        2.5,
+        8.5
+      ],
+      "realTimeFactor": 0.10128129175528137
+    },
+    {
+      "seed": 1,
+      "name": "light-left",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 412645,
+      "pathMm": 1.6626862796009352,
+      "yaw": 0.34872090639707237,
+      "position": [
+        -9.132096516978782,
+        2.886712720038353
+      ],
+      "meanRates": [
+        2.999999999999999,
+        2.666666666666666,
+        6.999999999999997,
+        5.666666666666663,
+        3.5,
+        2,
+        7
+      ],
+      "realTimeFactor": 0.10152529635099888
+    },
+    {
+      "seed": 1,
+      "name": "light-right",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 464950,
+      "pathMm": 1.239657070506519,
+      "yaw": -0.11503987995249915,
+      "position": [
+        -9.370003231958025,
+        2.4849768840408646
+      ],
+      "meanRates": [
+        1.9999999999999996,
+        1.9999999999999996,
+        5.666666666666664,
+        5.9999999999999964,
+        3.5,
+        5,
+        7
+      ],
+      "realTimeFactor": 0.10067719317771467
+    },
+    {
+      "seed": 1,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 100711,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.17427683142217457
+    },
+    {
+      "seed": 7,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.10097309692286481
+    },
+    {
+      "seed": 7,
+      "name": "background",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 333674,
+      "pathMm": 0.8733147909508021,
+      "yaw": 0.19344298118991315,
+      "position": [
+        -9.296819425776805,
+        2.11806021482884
+      ],
+      "meanRates": [
+        1.333333333333333,
+        1.6666666666666663,
+        5.999999999999998,
+        4.999999999999997,
+        2,
+        3.5,
+        4
+      ],
+      "realTimeFactor": 0.10176965129455467
+    },
+    {
+      "seed": 7,
+      "name": "environment",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 485606,
+      "pathMm": 1.30949822465008,
+      "yaw": 0.2068898134678829,
+      "position": [
+        -9.355239081581137,
+        2.5557949767056805
+      ],
+      "meanRates": [
+        2.333333333333333,
+        1.9999999999999996,
+        5.999999999999998,
+        5.333333333333331,
+        2.5,
+        4.5,
+        5
+      ],
+      "realTimeFactor": 0.1017524139905659
+    },
+    {
+      "seed": 7,
+      "name": "light-left",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 394500,
+      "pathMm": 1.2628940922477618,
+      "yaw": -0.37269143485340805,
+      "position": [
+        -9.737305956472786,
+        2.4557471300853058
+      ],
+      "meanRates": [
+        2.666666666666666,
+        2.333333333333333,
+        4.666666666666664,
+        6.666666666666664,
+        3.25,
+        1,
+        7
+      ],
+      "realTimeFactor": 0.10203660467257439
+    },
+    {
+      "seed": 7,
+      "name": "light-right",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 456045,
+      "pathMm": 1.8131543835598272,
+      "yaw": 0.0846991952098323,
+      "position": [
+        -9.249737420004866,
+        3.0490101218714516
+      ],
+      "meanRates": [
+        2.9999999999999996,
+        3.666666666666665,
+        6.666666666666665,
+        5.999999999999997,
+        3.25,
+        3,
+        6
+      ],
+      "realTimeFactor": 0.10158547606304302
+    },
+    {
+      "seed": 7,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 100298,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.18281349694769025
+    },
+    {
+      "seed": 19,
+      "name": "quiet",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 0,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.10123938123512521
+    },
+    {
+      "seed": 19,
+      "name": "background",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 335290,
+      "pathMm": 1.5436311512077028,
+      "yaw": 0.010971675569718954,
+      "position": [
+        -9.453689883836232,
+        2.788568973768949
+      ],
+      "meanRates": [
+        2.999999999999999,
+        3.333333333333332,
+        7.3333333333333295,
+        7.666666666666663,
+        3,
+        2.5,
+        4
+      ],
+      "realTimeFactor": 0.10120344324251772
+    },
+    {
+      "seed": 19,
+      "name": "environment",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 493886,
+      "pathMm": 1.1879884595333257,
+      "yaw": 0.10591612880106062,
+      "position": [
+        -9.2499982078175,
+        2.4292293901325435
+      ],
+      "meanRates": [
+        2.333333333333333,
+        1.9999999999999996,
+        6.333333333333331,
+        4.999999999999998,
+        2.75,
+        1,
+        4.5
+      ],
+      "realTimeFactor": 0.10109252987778083
+    },
+    {
+      "seed": 19,
+      "name": "light-left",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 407827,
+      "pathMm": 1.4675100142753545,
+      "yaw": 0.01632753731292886,
+      "position": [
+        -9.311408811787423,
+        2.712717082991502
+      ],
+      "meanRates": [
+        1.9999999999999996,
+        2.666666666666666,
+        6.9999999999999964,
+        6.9999999999999964,
+        1.75,
+        3,
+        7
+      ],
+      "realTimeFactor": 0.10142178141661273
+    },
+    {
+      "seed": 19,
+      "name": "light-right",
+      "seconds": 1,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 458101,
+      "pathMm": 1.9105461985239893,
+      "yaw": 0.25073971462811473,
+      "position": [
+        -9.331384141962525,
+        3.1512729739017513
+      ],
+      "meanRates": [
+        3.3333333333333326,
+        3.333333333333332,
+        7.9999999999999964,
+        6.999999999999997,
+        4,
+        2,
+        6
+      ],
+      "realTimeFactor": 0.100675560498131
+    },
+    {
+      "seed": 19,
+      "name": "disconnected",
+      "seconds": 0.2,
+      "neurons": 211577,
+      "compute": "cuda",
+      "totalSpikes": 100837,
+      "pathMm": 0,
+      "yaw": 0,
+      "position": [
+        -9.375,
+        1.250000000000001
+      ],
+      "meanRates": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "realTimeFactor": 0.18528526474283066
+    }
+  ]
+}

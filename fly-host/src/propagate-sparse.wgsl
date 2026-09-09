@@ -2,9 +2,10 @@
 // Integer atomics make accumulation independent of edge processing order.
 struct Params {
   n: u32, tick: u32, edges: u32, silent: u32,
-  seed: u32, em: f32, es: f32, coupling: f32
+  seed: u32, em: f32, es: f32, coupling: f32,
+  background: u32, adaptive: u32, bgRate: f32, bgKick: f32, adaptDecay: f32, adaptIncrement: f32
 }
-struct State { v: f32, g: f32, until: u32, padding: u32 }
+struct State { v: f32, g: f32, until: u32, adaptation: f32, ge: f32, gi: f32, background: u32, padding: u32 }
 struct Queue { sizes: array<atomic<u32>, 19>, ids: array<u32> }
 
 @group(0) @binding(0) var<storage, read> graph: array<u32>;
@@ -18,8 +19,8 @@ struct Queue { sizes: array<atomic<u32>, 19>, ids: array<u32> }
 // Only advance binds this buffer as storage. Propagate uses it as INDIRECT.
 @group(1) @binding(0) var<storage, read_write> indirect: array<atomic<u32>>;
 
-fn randomWord(i: u32, t: u32) -> u32 {
-  var x = ((i + 1u) * 747796405u) ^ ((t + 1u) * 2891336453u) ^ p.seed;
+fn hashWord(i: u32, t: u32, seed: u32) -> u32 {
+  var x = ((i + 1u) * 747796405u) ^ ((t + 1u) * 2891336453u) ^ seed;
   x = (x ^ (x >> 16u)) * 2246822519u;
   x = (x ^ (x >> 13u)) * 3266489917u;
   return x ^ (x >> 16u);
@@ -39,7 +40,8 @@ fn propagate(
   for (var e = graph[i] + local.x % 32u; e < graph[i + 1u]; e += 32u) {
     let destinationNeuron = graph[2u * p.n + 1u + e];
     if (p.tick >= states[destinationNeuron].until) {
-      atomicAdd(&currents[destinationNeuron], i32(synapses[e]) * sign);
+      if(p.adaptive != 0u && sign < 0){atomicAdd(&currents[p.n+destinationNeuron],i32(synapses[e]));}
+      else {atomicAdd(&currents[destinationNeuron], i32(synapses[e]) * sign);}
     }
   }
 }
@@ -58,24 +60,32 @@ fn advance(@builtin(global_invocation_id) id: vec3<u32>) {
 
   var s = states[i];
   let canIntegrate = p.tick >= s.until;
+  if(p.adaptive != 0u){s.adaptation *= p.adaptDecay;}
   if (canIntegrate) {
-    s.v = -52.0 + (s.v + 52.0) * p.em + s.g * p.coupling;
-    s.g *= p.es;
+    if(p.adaptive != 0u){
+      let conductance=.05+s.ge+s.gi;let equilibrium=(-52.0*.05-75.0*s.gi)/conductance;
+      s.v=equilibrium+(s.v-equilibrium)*exp(-conductance*.1);s.ge*=p.es;s.gi*=p.es;
+    } else {s.v = -52.0 + (s.v + 52.0) * p.em + s.g * p.coupling;s.g *= p.es;}
   }
 
   // Sample the threshold before this tick’s synaptic and external events.
-  let fired = canIntegrate && s.v > -45.0;
+  let fired = canIntegrate && s.v > -45.0 + select(0.0,s.adaptation,p.adaptive != 0u);
   let current = atomicExchange(&currents[i], 0);
   if (canIntegrate) {
-    s.g += f32(current) * .275;
-    if (f32(randomWord(i, p.tick)) / 4294967296.0 < rates[i] * .0001) {
+    if(p.adaptive != 0u){
+      s.ge+=f32(current)*.275/(20.0*52.0);
+      s.gi+=f32(atomicExchange(&currents[p.n+i],0))*.275/(20.0*23.0);
+    } else {s.g += f32(current) * .275;}
+    if(p.background != 0u && p.adaptive != 0u && s.background != 0u && f32(hashWord(i,p.tick,p.seed ^ 0x9e3779b9u))/4294967296.0 < p.bgRate*.0001){s.v+=p.bgKick;}
+    if (f32(hashWord(i, p.tick,p.seed)) / 4294967296.0 < rates[i] * .0001) {
       s.v += 68.75;
     }
   }
 
   if (fired) {
     s.v = -52.0;
-    s.g = 0.0;
+    s.g = 0.0;s.ge=0.0;s.gi=0.0;
+    if(p.adaptive != 0u && rates[i]==0.0){s.adaptation+=p.adaptIncrement;}
     s.until = p.tick + select(22u, 0u, rates[i] > 0.0);
     counts[i] += 1.0;
 

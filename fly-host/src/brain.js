@@ -1,3 +1,4 @@
+import { BACKGROUND } from './background.js';
 /** Connectome LIF reference. Units: mV, ms, Hz. No fitted weights. */
 export const PARAMETERS = Object.freeze({
   dt: 0.1,
@@ -34,14 +35,17 @@ export function outgoingGraph(g) {
 }
 const EM = Math.exp(-PARAMETERS.dt / PARAMETERS.tauM);
 const ES = Math.exp(-PARAMETERS.dt / PARAMETERS.tauS);
+const ADAPT_DECAY = Math.exp(-PARAMETERS.dt / BACKGROUND.adaptTauMs);
 const COUPLING = (PARAMETERS.tauS / (PARAMETERS.tauM - PARAMETERS.tauS)) * (EM - ES);
 
 /** Event-driven scheduling; exactly resting neurons need no state update. */
 export class BrainCPU {
-  constructor(graph, { seed = 1 } = {}) {
+  constructor(graph, { seed = 1, profile = 'reference' } = {}) {
     this.graph = graph;
     this.n = graph.n;
     this.seed = seed;
+    this.profile=profile;
+    this.backgroundIndices=Array.from({length:graph.n},(_,i)=>i).filter(i=>graph.background?.[i]);
     this.out = outgoingGraph(graph);
     this.reset();
   }
@@ -49,6 +53,8 @@ export class BrainCPU {
     const n = this.n;
     this.v = new Float32Array(n).fill(-52);
     this.g = new Float32Array(n);
+    this.adaptation = new Float32Array(n);
+    this.ge=new Float32Array(n);this.gi=new Float32Array(n);
     this.until = new Uint32Array(n);
     this.counts = new Uint32Array(n);
     this.history = Array.from({ length: 19 }, () => []);
@@ -69,7 +75,7 @@ export class BrainCPU {
       if (externalEvents ? externalEvents[i] : rates[i] > 0) driven.push(i);
     return this.advance(rates, driven, externalEvents, silenced);
   }
-  advance(rates, driven, externalEvents, silenced) {
+  advance(rates, driven, externalEvents, silenced, background = false) {
     const { v, g, until, counts, active, present } = this,
       t = this.tick,
       p = PARAMETERS;
@@ -79,15 +85,20 @@ export class BrainCPU {
       const i = active[k];
       // No epsilon cutoff: skip only the exact stationary state. Refractory
       // deadlines remain stored and incoming events still check them.
-      if (v[i] === p.rest && g[i] === 0) {
+      if (v[i] === p.rest && g[i] === 0 && (this.profile==='reference' || (this.adaptation[i]===0&&this.ge[i]===0&&this.gi[i]===0))) {
         present[i] = 0;
         continue;
       }
       active[kept++] = i;
+      if(this.profile==='adaptive')this.adaptation[i]*=ADAPT_DECAY;
       if (t >= until[i]) {
-        v[i] = p.rest + (v[i] - p.rest) * EM + g[i] * COUPLING;
-        g[i] *= ES;
-        if (v[i] > p.threshold) fired.push(i);
+        if(this.profile==='adaptive') {
+          const conductance=.05+this.ge[i]+this.gi[i];
+          const target=(-52*.05-75*this.gi[i])/conductance;
+          v[i]=target+(v[i]-target)*Math.exp(-conductance*p.dt);
+          this.ge[i]*=ES;this.gi[i]*=ES;
+        } else {v[i] = p.rest + (v[i] - p.rest) * EM + g[i] * COUPLING;g[i] *= ES;}
+        if (v[i] > p.threshold+(this.profile==='adaptive'?this.adaptation[i]:0)) fired.push(i);
       }
     }
     this.activeCount = kept;
@@ -102,7 +113,10 @@ export class BrainCPU {
         for (let e = out.offsets[i]; e < out.offsets[i + 1]; e++) {
           const j = out.targets[e];
           if (t >= until[j]) {
-            g[j] += out.counts[e] * sign;
+            if(this.profile==='adaptive') {
+              if(sign>0)this.ge[j]+=out.counts[e]*sign/(20*52);
+              else this.gi[j]+=-out.counts[e]*sign/(20*23);
+            } else g[j] += out.counts[e] * sign;
             this.activate(j);
           }
         }
@@ -116,9 +130,16 @@ export class BrainCPU {
         this.activate(i);
       }
     }
+    if(background && this.profile==='adaptive')for(const i of this.backgroundIndices) {
+      if(t>=until[i] && randomWord(i,t,this.seed^BACKGROUND.seedXor)/4294967296 < BACKGROUND.rateHz*.0001) {
+        v[i]+=BACKGROUND.kickMv;this.activate(i);
+      }
+    }
     for (const i of fired) {
+      if(this.profile==='adaptive' && rates[i]===0)this.adaptation[i]+=BACKGROUND.adaptMv;
       v[i] = p.rest;
       g[i] = 0;
+      this.ge[i]=0;this.gi[i]=0;
       until[i] = t + (rates[i] > 0 ? 0 : p.refractory);
       counts[i]++;
     }
@@ -127,12 +148,12 @@ export class BrainCPU {
     this.tick++;
     return fired;
   }
-  batch(steps, rates, silenced = false) {
+  batch(steps, rates, silenced = false, background = false) {
     const driven = [];
     for (let i = 0; i < this.n; i++) if (rates[i] > 0) driven.push(i);
     this.counts.fill(0);
     let total = 0;
-    for (let k = 0; k < steps; k++) total += this.advance(rates, driven, null, silenced).length;
+    for (let k = 0; k < steps; k++) total += this.advance(rates, driven, null, silenced, background).length;
     return { counts: this.counts.slice(), tick: this.tick, total };
   }
 }

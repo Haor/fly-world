@@ -13,6 +13,7 @@ export class Simulation {
     this.epoch = 0; this.generation = 0; this.tick = 0; this.deferred = null; this.ready = false; this.paused = false;
     this.pending = false; this.resetting = false; this.backend = 'cpu'; this.speed = 0;
     this.tick = 0; this.deferred = null;
+    this.dynamics='adaptive';this.background=true;
     this.phase = 'idle'; this.detail = ''; this.lastResult = 0;
   }
   emit() { this.onState(this); }
@@ -25,7 +26,7 @@ export class Simulation {
     const epoch = ++this.epoch;
     this.generation = 0; this.tick = 0; this.deferred = null; this.ready = false; this.paused = false; this.pending = false;
     this.resetting = false; this.backend = 'cpu'; this.phase = 'loading'; this.detail = '';
-    this.body.reset(); this.world.reset(this.body); this.lastResult = 0; this.speed = 0;
+    this.body.reset();this.body.profile=this.dynamics; this.world.reset(this.body); this.lastResult = 0; this.speed = 0;
     this.emit();
     try { this.worker = this.createWorker(backend); }
     catch (e) { this.fail(e.message); return; }
@@ -38,7 +39,7 @@ export class Simulation {
         this.detail = m.type === 'progress' ? `本地连接数据 · ${Math.round(m.value * 100)}%` : m.message || '正在读取本地数据并准备计算…';
         this.emit(); this.arm(180000);
       } else if (m.type === 'fallback') {
-        this.detail = 'WebGPU 不可用，正在启用 JavaScript 计算。'; this.emit();
+        this.detail = `WebGPU 未通过检查：${m.message}。正在启用 JavaScript 计算。`; this.emit();
       } else if (m.type === 'ready') {
         clearTimeout(this.watchdog);
         this.model=m.model||{id:'malecns-v1.0-retained',neurons:166700};this.compute=m.compute||m.backend;this.projectionSize=m.projectionSize||166700;
@@ -64,7 +65,7 @@ export class Simulation {
       }
     };
     this.arm(180000);
-    this.worker.postMessage({type:'init', backend, assetBase:this.assetBase});
+    this.worker.postMessage({type:'init', backend, assetBase:this.assetBase,dynamics:this.dynamics});
   }
   applyResult(m) {
     this.tick = m.tick;
@@ -74,14 +75,14 @@ export class Simulation {
     const dt=m.steps*.0001;
     this.body.advance(m.rates,dt,this.world.feeding);
     const pose=this.world.advance(this.body,this.body.rates,dt);
-    this.onResult({...m,pose,rates:this.body.rates,world:this.world.snapshot()});
+    this.onResult({...m,pose,rates:this.body.rates,world:{...this.world.snapshot(),dynamics:this.dynamics,background:this.dynamics==='adaptive'&&this.background}});
     this.timer=setTimeout(()=>this.request(),Math.max(0,10-m.wallMs));
   }
   request() {
     clearTimeout(this.timer);
     if (!this.ready || this.paused || this.pending || this.resetting || !this.canStep()) return;
     this.pending = true;
-    this.worker.postMessage({type:'step', generation:this.generation, silenced:!!this.silenced, sensory:this.world.sense(this.body)});
+    this.worker.postMessage({type:'step', generation:this.generation, silenced:!!this.silenced,background:this.dynamics==='adaptive'&&this.background, sensory:this.world.sense(this.body)});
     this.arm(60000);
   }
   pulse(indices, strength, profile = 'paint', replace = false) {

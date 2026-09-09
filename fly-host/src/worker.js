@@ -1,3 +1,4 @@
+import {backgroundMask,DYNAMICS_ENCODING} from './background.js';
 import { incomingConnections } from './connections.js';
 import { loadGraph, configureAssetBase } from './data-loader.js';
 import { BrainCPU } from './brain.js';
@@ -27,6 +28,7 @@ async function handle(m) {
     graph.neurons.forEach((r, i) => {
       if (['dopamine', 'octopamine', 'serotonin'].includes(r[4])) graph.sign[i] = 1;
     });
+    graph.background=backgroundMask(graph.neurons);
     groups = populations(graph.neurons);
     sensoryGroups = sensoryPopulations(graph.neurons);
     pulses = new PulseBank(graph.n);
@@ -35,19 +37,19 @@ async function handle(m) {
         postMessage({ type: 'stage', message: 'Checking WebGPU against JavaScript…' });
         const { BrainGPU } = await import('./brain-gpu.js');
         const { checkGPU } = await import('./gpu-check.js');
-        await checkGPU((g) => BrainGPU.create(g));
+        await checkGPU((g,options) => BrainGPU.create(g,options));
         postMessage({ type: 'stage', message: 'Preparing resident connectome and motor readout…' });
-        brain = await BrainGPU.create(graph);
+        brain = await BrainGPU.create(graph,{profile:m.dynamics||"reference"});
         await brain.prepareReadout(groups);
         backend = 'gpu';
       } catch (error) {
         brain?.destroy?.();
         postMessage({ type: 'fallback', message: error.message });
-        brain = new BrainCPU(graph);
+        brain = new BrainCPU(graph,{profile:m.dynamics||"reference"});
         backend = 'cpu';
       }
-    else brain = new BrainCPU(graph);
-    postMessage({ type: 'ready', backend });
+    else brain = new BrainCPU(graph,{profile:m.dynamics||"reference"});
+    postMessage({ type: 'ready', backend, dynamics:brain.profile,dynamicsEncoding:DYNAMICS_ENCODING });
   } else if(m.type==='inspect') {
     postMessage({...incomingConnections(graph,m.bodyId),generation});
   } else if (m.type === 'pulse') {
@@ -65,7 +67,7 @@ async function handle(m) {
     const started = performance.now(),
       steps = 100;
     const input = addSensoryRates(pulses.sample(brain.tick), sensoryGroups, m.sensory);
-    const result = await brain.batch(steps, input, m.silenced);
+    const result = await brain.batch(steps, input, m.silenced,m.background);
     const reference = decodeCounts(result.counts, groups, steps);
     let rates = reference;
     if (backend === 'gpu') {

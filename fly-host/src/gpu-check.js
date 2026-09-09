@@ -31,9 +31,12 @@ export function parityGraph() {
 }
 
 export async function checkGPU(create) {
+  return {reference:await checkProfile(create,'reference'),adaptive:await checkProfile(create,'adaptive')};
+}
+async function checkProfile(create,profile) {
   const graph = parityGraph(),
-    cpu = new BrainCPU(graph),
-    gpu = await create(graph);
+    cpu = new BrainCPU(Object.assign(graph,{background:Uint8Array.from({length:257},(_,i)=>i<64?1:0)}),{profile}),
+    gpu = await create(graph,{profile});
   const rates = Float32Array.from({ length: graph.n }, (_, i) =>
     i < 64 || (i >= 128 && i < 192) ? 1000 : 0,
   );
@@ -46,8 +49,8 @@ export async function checkGPU(create) {
       cpu.reset();
       await gpu.reset();
       for (const steps of [1, 17, 19, 63, 100, 100, 100, 100, 100, 100, 100]) {
-        const expected = cpu.batch(steps, rates, silent),
-          actual = await gpu.batch(steps, rates, silent);
+        const expected = cpu.batch(steps, rates, silent,profile==='adaptive'),
+          actual = await gpu.batch(steps, rates, silent,profile==='adaptive');
         if (actual.tick !== expected.tick || actual.counts.length !== graph.n)
           throw Error('GPU self-check: invalid clock or output size');
         for (let i = 0; i < graph.n; i++)

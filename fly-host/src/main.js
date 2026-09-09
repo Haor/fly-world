@@ -21,7 +21,7 @@ const simulation = new Simulation({assetBase, onState: stateChanged, onResult: r
   createWorker: backend => {
     if (backend !== 'cloud') return new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
     const remote=new CloudBrain({url:$('cloud-url').value,token:$('cloud-token').value,neurons:brainView.neurons,modelId:$('model-scale').value==='full'?'malecns-v1.0-full':'malecns-v1.0-retained',
-      compute:$('service-compute').value,inputMode:simulation.world.options.mode,onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);}});
+      compute:$('service-compute').value,dynamics:simulation.dynamics,inputMode:simulation.world.options.mode,onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);}});
     $('cloud-token').value='';return remote;
   }});
 const habitatView = new HabitatView($('habitat-canvas'), simulation.world);
@@ -52,7 +52,7 @@ function stateChanged() {
   const usable = s.ready && !s.resetting;
   for (const id of ['pause','reset','random-start','loom','baseline']) $(id).disabled = !usable;
   for (const button of document.querySelectorAll('[data-preset]')) button.disabled = !usable || s.world.options.mode==='sensory';
-  for(const id of ['backend','model-scale','input-mode','service-compute'])$(id).disabled=booting||s.phase==='loading'||s.resetting;
+  for(const id of ['backend','model-scale','input-mode','service-compute','dynamics'])$(id).disabled=booting||s.phase==='loading'||s.resetting;
   $('pause-label').textContent = s.paused ? '继续' : '暂停';
   $('launch-panel').hidden = s.ready;
   $('start').disabled = booting || s.phase === 'loading';
@@ -79,11 +79,12 @@ function render() {
   $('energy-meter').style.width = (active ? world.energy*100 : 0)+'%';
   $('coordinates').textContent = active ? `X ${pose.x.toFixed(1)} / Z ${pose.z.toFixed(1)} mm` : 'X — / Z —';
   const sensoryOnly=s.world.options.mode==='sensory';
+  $('background').disabled=s.dynamics!=='adaptive'||s.resetting;$('background').checked=s.dynamics==='adaptive'&&s.background;
   $('mode-label').textContent = s.world.options.enabled ? sensoryOnly?'纯感觉':'辅助实验' : '环境输入关闭';
   $('foraging').disabled=sensoryOnly;$('foraging').checked=!sensoryOnly&&s.world.options.foraging;$('exploration').disabled=sensoryOnly;$('manual-mode').disabled=sensoryOnly;
   for(const button of document.querySelectorAll('[data-preset]'))button.disabled=!active||sensoryOnly;
   $('vision-population').textContent=sensoryOnly?'L1 / L2 · 早期视觉代理':'LC4 / LPLC2 · 人工特征';
-  $('input-note').textContent=sensoryOnly?'只输入环境感觉，不保证自主运动或寻食。':'包含人工步行、转向和可选寻食辅助。';
+  $('input-note').textContent=sensoryOnly?'环境感觉进入网络，由神经活动驱动身体。':'包含人工步行、转向和可选寻食辅助。';
   $('loom').textContent=sensoryOnly?'掠过遮挡 · 0.65 s':'逼近刺激 · 0.65 s';
   $('model-summary').textContent=active?`${s.model.neurons.toLocaleString()} 节点 · ${s.compute} · 空间定位 ${brainView.positionedCount.toLocaleString()} 节点`:
     $('model-scale').value==='full'?'全量模型 · 通过本地或远程服务推理':'轻量模型 · 可在浏览器推理';
@@ -208,7 +209,7 @@ $('clear').onclick=()=>{brainView?.clear();simulation.clear();};$('replay').oncl
 $('strength').oninput=()=>{$('strength-value').textContent=$('strength').value+' Hz';};
 $('silence').onchange=()=>{simulation.silenced=$('silence').checked;event(`突触传播 · ${simulation.silenced?'关闭':'开启'}`);};
 for(const button of document.querySelectorAll('[data-preset]'))button.onclick=()=>stimulate(button.dataset.preset);
-$('baseline').onclick=()=>{simulation.world.options.enabled=false;$('autonomy').checked=false;simulation.reset();};
+$('baseline').onclick=()=>{simulation.background=false;simulation.world.options.enabled=false;$('autonomy').checked=false;simulation.reset();};
 $('backend').onchange=()=>{
   $('cloud-settings').hidden=$('backend').value!=='cloud';
   if($('model-scale').value==='full'&&$('backend').value!=='cloud'){$('backend').value='cloud';$('cloud-settings').hidden=false;}
@@ -230,6 +231,12 @@ $('input-mode').onchange=()=>{
 for(const [id,key,scale] of [['light-level','light',100],['light-angle','lightAngle',1]])$(id).oninput=()=>{
   simulation.world.options[key]=Number($(id).value)/scale;simulation.world.sense(simulation.body);render();
 };
+$('dynamics').onchange=()=>{
+  simulation.dynamics=$('dynamics').value;
+  if(assetsReady&&$('backend').value!=='cloud')boot();
+  else if(simulation.ready)simulation.fail('动力学已切换，请重新填写令牌并连接。','idle');else render();
+};
+$('background').onchange=()=>{simulation.background=$('background').checked;if(simulation.ready)simulation.reset();else render();};
 $('service-compute').onchange=()=>{if(simulation.ready&&simulation.backend==='cloud')simulation.fail('计算后端已切换，请重新填写令牌并连接。','idle');};
 for(const button of document.querySelectorAll('[data-camera]'))button.onclick=()=>bodyView?.setCamera(button.dataset.camera);
 $('depth-of-field').onchange=()=>bodyView?.setDepthOfField($('depth-of-field').checked);

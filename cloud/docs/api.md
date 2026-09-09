@@ -135,3 +135,17 @@ The other annotation fields are strings, and `sign` is -1, 0, or 1. The client w
 In sensory mode, `walk`, `left`, `right`, and `looming` must be zero, and `pulse` is forbidden. Violations close the connection with `MOTOR_INPUT_FORBIDDEN` or `DIRECT_PULSE_FORBIDDEN`. The pulse examples above require an assisted session. CUDA failures use `CUDA_UNAVAILABLE`, `TORCH_NOT_INSTALLED`, or `CUDA_OPERATION_FAILED`; no silent backend substitution occurs.
 
 `inspect` accepts a decimal-string `bodyId` and common request fields. It returns `connections` with `bodyId`, `direction:incoming`, total incoming edge count, and up to 32 strongest `items` containing `bodyId` and synapse `weight`. Inspection does not advance the neural clock and is allowed in sensory mode.
+
+## Experimental dynamics
+
+An adaptive client sends `dynamics:"adaptive"` and
+`dynamicsEncoding:"adaptive-conductance/1"` in `init`. `ready` must echo both.
+`dynamics:"reference"` (also the default when omitted) retains the original
+current-based LIF. The step field `background:boolean` defaults to false and
+requires the adaptive profile when true. Input-mode restrictions still apply:
+background is not a walk, turn, or pulse command. Reset clears adaptive state.
+
+See [equations and controls](../../fly-host/docs/autonomous-dynamics.md).
+`NEURAL_DYNAMICS=adaptive` selects it in `smoke.js`; `check-autonomy.js` always
+uses adaptive sensory sessions. This extension uses the same version 2 transport
+with an explicit dynamics handshake, so older reference clients keep their behavior.

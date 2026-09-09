@@ -55,4 +55,4 @@ npm run build
 
 当前默认纯感觉模式，人工步行、转向和逼近群体输入均为零，前端和服务端都拒绝直接脉冲。光照与遮挡通过双侧 L1/L2 早期视觉代理输入；组胺光受体传递与完整视网膜尚未建模。该模式不构成自主寻食或生物学准确性的证明。
 
-可选 PyTorch 后端遵循既有 LIF 更新顺序。固定种子的 800 步小图对照覆盖计数、膜电位、兴奋、抑制、延迟与重置，已在 PyTorch CPU 通过。真实 CUDA 硬件执行和全图长期逐脉冲一致性仍需验证，见 [Windows CUDA 验收](../../cloud/docs/cuda-windows.zh_CN.md)。
+可选 PyTorch 后端遵循既有 LIF 更新顺序。固定种子的 800 步小图对照覆盖计数、膜电位、兴奋、抑制、延迟与重置，两套配置已在 PyTorch CPU 与 RTX 4090 D 通过。全图长期逐脉冲一致性仍未证明；见[自主动力学](autonomous-dynamics.zh_CN.md)和 [Windows CUDA 验收](../../cloud/docs/cuda-windows.zh_CN.md)。

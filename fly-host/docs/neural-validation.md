@@ -81,6 +81,6 @@ establish autonomous foraging or biological fidelity.
 
 The optional PyTorch backend follows the existing LIF event order. A seeded
 800-step fixture checks counts, membrane values, excitation, inhibition, delay,
-and reset against JavaScript. It passes on PyTorch CPU. Actual CUDA hardware and
-long full-model spike equivalence still require testing; see the
+and reset against JavaScript. Both profiles pass on PyTorch CPU and an RTX 4090 D.
+Long full-model spike equivalence is not established. See [adaptive dynamics](autonomous-dynamics.md) and the
 [Windows CUDA checks](../../cloud/docs/cuda-windows.md).

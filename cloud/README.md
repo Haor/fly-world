@@ -12,8 +12,10 @@ A shared inference API for a local PC, another PC, or a cloud server. Choose the
 
 The full-annotation package includes 211,577 nodes and 26,028,386 directed edges.
 Unannotated raw segments are excluded. The model and raw source files are prepared
-locally and are not committed. CPU execution and PyTorch CPU parity were tested. CUDA is implemented; GPU hardware execution and public TLS still require target validation.
+locally and are not committed. CPU execution and PyTorch CPU parity were tested. Both dynamics profiles and full-model CUDA controls passed on an RTX 4090 D. Native Windows GPU execution and public TLS still require target validation.
 
 Run `npm ci --prefix cloud` and `npm test --prefix cloud` from the repository root.
 See the deployment guide before starting the service: a model directory, token,
 and exact Origin allowlist are required.
+
+See [experimental autonomous dynamics](../fly-host/docs/autonomous-dynamics.md) for equations, background controls, related projects, and validation limits.

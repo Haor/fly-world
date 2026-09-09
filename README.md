@@ -48,6 +48,10 @@ body decoding, hunger/energy, and the optional foraging aid include engineering
 assumptions. See [model validation](fly-host/docs/neural-validation.md) and
 [foraging behavior and controls](fly-host/docs/foraging.md).
 
+The default experimental adaptive dynamics add conductance-based synapses,
+spike adaptation, and optional background input to interneurons. The reference
+LIF profile remains available. See [equations and CUDA controls](fly-host/docs/autonomous-dynamics.md).
+
 The default sensory mode derives inputs from light, occlusion, odor, and food
 contact. It does not inject walk or turn commands. Early vision uses an L1/L2
 proxy, not a complete retina. Assisted experiments remain available.

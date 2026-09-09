@@ -60,4 +60,8 @@ node cloud/src/server.js
 
 CUDA 引擎使用 PyTorch CSR 稀疏乘法，复现本项目 LIF 更新顺序、18 步突触延迟、22 步不应期及固定种子 Poisson 输入；感觉群体和脉冲包络由 JavaScript 提供，不另写第二套映射。它不是直接运行 eon 的 FlyWire 权重。GPU 稀疏归约的浮点顺序与 CPU 不同，小图计数一致不保证完整图长时间逐脉冲相同。
 
-本次开发机没有 NVIDIA GPU。PyTorch CPU 小图对照和进程通信已测试，真实 CUDA 执行与速度仍须在 Windows PC 验收。现有 Docker Compose 是 CPU 部署模板；Windows CUDA 使用以上原生启动方式。本实现尚未做 CUDA Graph、融合内核或实时速度保证。
+本机 Mac 的 CPU 对照已通过；另在 RTX 4090 D 上使用 Python 3.12、PyTorch 2.5.1+cu124 验证了两套动力学的 CUDA 小图对照、全量推理和感觉闭环。原生 Windows 显卡环境仍需单独验收。现有 Docker Compose 是 CPU 部署模板；Windows CUDA 使用以上原生启动方式。本实现尚未做 CUDA Graph、融合内核或实时速度保证。
+
+## 自主动力学
+
+页面选择“自主动力学 · 实验”即可使用新配置。CUDA 验收脚本现在对两套配置做数值对照，再运行全量自主动力学联调。感觉对照可使用同样的令牌与地址环境变量运行 `node cloud/tools/check-autonomy.js`。见[方程与 GPU 结果](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。已验证的 Linux GPU 沿用现有 PyTorch 2.5.1+cu124，未要求升级；新装 Windows 时仍须匹配驱动、CUDA 轮子与 Python 版本。

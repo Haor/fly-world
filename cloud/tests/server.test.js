@@ -79,8 +79,8 @@ test('reset queued during a step preserves command order and uses a new generati
   c.send(step(3,1));assert.equal((await c.next()).tick,100);
 });
 test('protocol pongs retain a paused session; an unauthenticated connection expires',async t=>{
-  const f=await fixture(t,{idleMs:100,initMs:100}),c=await client(f.url);
-  c.send(init);await c.next();await new Promise(resolve=>setTimeout(resolve,350));
+  const f=await fixture(t,{idleMs:500,initMs:500}),c=await client(f.url);
+  c.send(init);await c.next();await new Promise(resolve=>setTimeout(resolve,1600));
   c.send(step(1));assert.equal((await c.next()).type,'result');
   const unauthenticated=await client(f.url);assert.equal((await unauthenticated.next()).code,'INIT_TIMEOUT');
 });
@@ -118,4 +118,14 @@ test('inspect returns selected-model connectivity in sensory mode without advanc
   const edges=await c.next();assert.equal(edges.type,'connections');assert.deepEqual(edges.items,[{bodyId:'1',weight:100}]);
   c.send({...step(2),sensory:Object.fromEntries(SENSORY_KEYS.map(key=>[key,0]))});
   assert.equal((await c.next()).tick,100);
+});
+
+test('adaptive dynamics are negotiated and reference sessions reject background input',async t=>{
+ const f=await fixture(t,{maxSessions:2}),c=await client(f.url);
+ c.send({...init,dynamics:'adaptive',dynamicsEncoding:'adaptive-conductance/1',inputMode:'sensory'});
+ const ready=await c.next();assert.equal(ready.dynamics,'adaptive');assert.equal(ready.dynamicsEncoding,'adaptive-conductance/1');
+ c.send({...step(1),background:false,sensory:Object.fromEntries(SENSORY_KEYS.map(key=>[key,0]))});
+ assert.equal((await c.next()).total,0);
+ const reference=await client(f.url);reference.send(init);await reference.next();reference.send({...step(1),background:true});
+ assert.equal((await reference.next()).code,'BACKGROUND_REQUIRES_ADAPTIVE');
 });

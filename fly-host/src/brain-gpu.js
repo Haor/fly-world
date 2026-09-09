@@ -1,3 +1,4 @@
+import { BACKGROUND } from './background.js';
 import propagationShader from './propagate-sparse.wgsl?raw';
 import { assetURL } from './data-loader.js';
 import { outgoingGraph, PARAMETERS } from './brain.js';
@@ -13,8 +14,9 @@ const COUPLING = (PARAMETERS.tauS / (PARAMETERS.tauM - PARAMETERS.tauS)) * (EM -
 
 /** Resident, spike-driven WGSL backend on the kernel runtime's GPUDevice. */
 export class BrainGPU {
-  static async create(graph) {
+  static async create(graph, {profile="reference",seed=1} = {}) {
     const brain = new BrainGPU();
+    brain.profile=profile;brain.seed=seed;brain.backgroundMask=graph.background;
     try {
       await brain.init(graph);
       return brain;
@@ -83,14 +85,14 @@ export class BrainGPU {
     device.queue.writeBuffer(this.graph, (this.n + 1) * 4, graph.sign);
     device.queue.writeBuffer(this.graph, (2 * this.n + 1) * 4, outgoing.targets);
     this.edgeCounts = this.buffer(this.edges * 4, storage, outgoing.counts);
-    this.state = this.buffer(this.n * 16, storage | GPUBufferUsage.COPY_SRC);
+    this.state = this.buffer(this.n * 32, storage | GPUBufferUsage.COPY_SRC);
     // N entries per slot covers even a simultaneous spike from every neuron.
     this.history = this.buffer((19 + this.n * 19) * 4, storage);
     this.indirect = this.buffer(19 * 12, storage | GPUBufferUsage.INDIRECT);
     this.rates = this.buffer(this.n * 4, storage);
     this.countTensor = this.runtime.empty('float32', [this.n, 1]);
     this.counts = this.countTensor.buffer;
-    this.currents = this.buffer(this.n * 4, storage);
+    this.currents = this.buffer(this.n * 8, storage);
     this.read = this.buffer(
       (this.n + CHANNELS.length) * 4,
       GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -111,7 +113,7 @@ export class BrainGPU {
         visibility: GPUShaderStage.COMPUTE,
         buffer:
           binding === 7
-            ? { type: 'uniform', hasDynamicOffset: true, minBindingSize: 32 }
+            ? { type: 'uniform', hasDynamicOffset: true, minBindingSize: 64 }
             : { type: [0, 1, 4].includes(binding) ? 'read-only-storage' : 'storage' },
       })),
     });
@@ -144,7 +146,7 @@ export class BrainGPU {
       layout,
       entries: bindings.map((buffer, binding) => ({
         binding,
-        resource: { buffer, ...(binding === 7 ? { size: 32 } : {}) },
+        resource: { buffer, ...(binding === 7 ? { size: 64 } : {}) },
       })),
     });
     this.indirectBind = device.createBindGroup({
@@ -156,8 +158,9 @@ export class BrainGPU {
 
   async reset() {
     this.tick = 0;
-    const state = new Float32Array(this.n * 4);
-    for (let i = 0; i < this.n; i++) state[i * 4] = PARAMETERS.rest;
+    const state = new Float32Array(this.n * 8);
+    const integers=new Uint32Array(state.buffer);
+    for(let i=0;i<this.n;i++){state[i*8]=PARAMETERS.rest;integers[i*8+6]=this.backgroundMask?.[i]||0;}
     this.device.queue.writeBuffer(this.state, 0, state);
     this.device.queue.writeBuffer(
       this.indirect,
@@ -171,7 +174,7 @@ export class BrainGPU {
     this.device.queue.submit([encoder.finish()]);
   }
 
-  async batch(steps, rates, silenced = false) {
+  async batch(steps, rates, silenced = false, background = false) {
     if (this.loss.message) throw Error(this.loss.message);
     if (!Number.isInteger(steps) || steps < 1 || steps > MAX_STEPS)
       throw Error('GPU batch requires 1–200 integer steps');
@@ -181,10 +184,12 @@ export class BrainGPU {
     device.queue.writeBuffer(this.rates, 0, rates);
     for (let k = 0; k < steps; k++) {
       const offset = k * UNIFORM_STRIDE;
-      [this.n, this.tick + k, this.edges, +silenced, 1].forEach((value, i) =>
+      [this.n, this.tick + k, this.edges, +silenced, this.seed].forEach((value, i) =>
         view.setUint32(offset + i * 4, value, true),
       );
       [EM, ES, COUPLING].forEach((value, i) => view.setFloat32(offset + 20 + i * 4, value, true));
+      view.setUint32(offset+32,+background,true);view.setUint32(offset+36,+(this.profile==='adaptive'),true);
+      [BACKGROUND.rateHz,BACKGROUND.kickMv,Math.exp(-.1/BACKGROUND.adaptTauMs),BACKGROUND.adaptMv].forEach((v,i)=>view.setFloat32(offset+40+i*4,v,true));
     }
     device.queue.writeBuffer(this.uniform, 0, this.uniformData, 0, UNIFORM_STRIDE * steps);
     for (let start = 0; start < steps; start += SUBMISSION_STEPS) {
@@ -255,12 +260,12 @@ export class BrainGPU {
     if (this.loss.message) throw Error(this.loss.message);
     const device = this.device;
     const read = device.createBuffer({
-      size: this.n * 16,
+      size: this.n * 32,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });
     try {
       const encoder = device.createCommandEncoder();
-      encoder.copyBufferToBuffer(this.state, 0, read, 0, this.n * 16);
+      encoder.copyBufferToBuffer(this.state, 0, read, 0, this.n * 32);
       device.queue.submit([encoder.finish()]);
       await read.mapAsync(GPUMapMode.READ);
       const view = new DataView(read.getMappedRange()),
@@ -268,9 +273,9 @@ export class BrainGPU {
         g = [],
         until = [];
       for (let i = 0; i < this.n; i++) {
-        v.push(view.getFloat32(i * 16, true));
-        g.push(view.getFloat32(i * 16 + 4, true));
-        until.push(view.getUint32(i * 16 + 8, true));
+        v.push(view.getFloat32(i * 32, true));
+        g.push(view.getFloat32(i * 32 + 4, true));
+        until.push(view.getUint32(i * 32 + 8, true));
       }
       read.unmap();
       return { v, g, until, tick: this.tick };

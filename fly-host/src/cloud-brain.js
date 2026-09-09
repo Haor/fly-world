@@ -1,3 +1,4 @@
+import {DYNAMICS_ENCODING} from './background.js';
 import { CHANNELS } from './stimulus.js';
 import { PROTOCOL, STEP_COUNT, DT_MS } from './neural-contract.js';
 import { SENSORY_ENCODING, SENSORY_KEYS } from './habitat.js';
@@ -12,8 +13,8 @@ export function cloudURL(value) {
 }
 /** Worker-compatible remote transport. No automatic reconnect or local fallback. */
 export class CloudBrain {
-  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',onMetadata=null}) {
-    this.modelId=modelId;this.compute=compute;this.inputMode=inputMode;this.onMetadata=onMetadata;this.metadataRows=[];
+  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',dynamics='reference',seed=1,onMetadata=null}) {
+    this.seed=seed;this.dynamics=dynamics;this.modelId=modelId;this.compute=compute;this.inputMode=inputMode;this.onMetadata=onMetadata;this.metadataRows=[];
     this.url=cloudURL(url);this.token=token;this.neurons=neurons;
     this.byId=new Map(neurons.map((r,i)=>[String(r[0]),i]));
     this.Socket=Socket;this.sequence=0;this.generation=0;this.requests=new Map();this.closed=false;
@@ -25,7 +26,7 @@ export class CloudBrain {
     if(m.type==='init') {
       this.socket=new this.Socket(this.url);
       this.socket.onopen=()=>{
-        this.socket.send(JSON.stringify({type:'init',protocol:PROTOCOL,model:this.modelId,compute:this.compute,inputMode:this.inputMode,metadata:!!this.onMetadata,seed:1,
+        this.socket.send(JSON.stringify({type:'init',protocol:PROTOCOL,model:this.modelId,compute:this.compute,inputMode:this.inputMode,metadata:!!this.onMetadata,seed:this.seed,dynamics:this.dynamics,dynamicsEncoding:DYNAMICS_ENCODING,
           dtMs:DT_MS,steps:STEP_COUNT,channels:CHANNELS,spikeIds:'body-id',sensoryEncoding:SENSORY_ENCODING,token:this.token}));
         this.token='';
       };
@@ -56,6 +57,8 @@ export class CloudBrain {
       if(this.ready || this.handshake || m.protocol!==PROTOCOL || m.sensoryEncoding!==SENSORY_ENCODING || m.model?.id!==this.modelId || m.model.scope!==(this.modelId.endsWith('-full')?'full':'retained') ||
         m.model.dtMs!==DT_MS || !/^[0-9a-f]{64}$/.test(m.model.connectomeSha256 || '') || !Number.isSafeInteger(m.model.neurons) || m.model.neurons<1 || m.model.neurons>500000 ||
         JSON.stringify(m.channels)!==JSON.stringify(CHANNELS))throw Error('Incompatible model');
+      if(m.dynamics!==undefined && m.dynamics!==this.dynamics)throw Error('Dynamics mismatch');
+      if(this.dynamics==='adaptive' && m.dynamicsEncoding!==DYNAMICS_ENCODING)throw Error('Unsupported dynamics');
       if(m.compute!==undefined && m.compute!==this.compute)throw Error('Compute mismatch');
       this.handshake=m;
       if(this.onMetadata) {
@@ -106,6 +109,6 @@ export class CloudBrain {
     this.emit({type:'result',generation:m.generation,tick:m.tick,steps:m.steps,total:m.total,
       wallMs:m.wallMs,rates:m.rates,firing:Uint32Array.from(firing),counts:Uint16Array.from(counts)});
   }
-  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',model:this.handshake.model,compute:this.compute,projectionSize:this.neurons.length});}
+  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',model:this.handshake.model,compute:this.compute,dynamics:this.dynamics,projectionSize:this.neurons.length});}
   terminate() {this.closed=true;this.token='';this.requests.clear();this.socket?.close();}
 }

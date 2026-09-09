@@ -77,7 +77,11 @@ population membership and pulse envelopes. This is not eon's FlyWire weight set.
 Floating-point reduction order differs on GPU; fixture spike-count agreement does
 not imply exact long-duration full-graph agreement.
 
-The development machine has no NVIDIA GPU. PyTorch CPU fixture parity and subprocess
-transport were tested; Windows CUDA execution and speed require target acceptance.
+PyTorch CPU parity and Linux CUDA execution on an RTX 4090 D were tested.
+Native Windows GPU execution remains a separate target acceptance check.
 The existing Compose template remains CPU-only; use native Windows for CUDA. CUDA
 Graphs, fused kernels, and guaranteed real-time speed are not implemented.
+
+## Adaptive profile
+
+Select experimental autonomous dynamics in the station. The CUDA check script now tests both profiles, then runs the full-model smoke with adaptive dynamics. A paired sensory benchmark is available as `node cloud/tools/check-autonomy.js` with the same token and URL environment variables. See [equations and recorded GPU evidence](../../fly-host/docs/autonomous-dynamics.md). The validated Linux GPU used its existing PyTorch 2.5.1+cu124 environment; upgrading it was not required. Match CUDA wheels to the driver and Python version on a new Windows installation.

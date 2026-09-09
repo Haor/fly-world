@@ -98,3 +98,9 @@
 纯感觉模式要求 `walk`、`left`、`right`、`looming` 为零，并禁止 `pulse`。违规时以 `MOTOR_INPUT_FORBIDDEN` 或 `DIRECT_PULSE_FORBIDDEN` 关闭连接；上面的脉冲示例只适用于 assisted 会话。CUDA 失败返回 `CUDA_UNAVAILABLE`、`TORCH_NOT_INSTALLED` 或 `CUDA_OPERATION_FAILED`，不自动切换后端。
 
 `inspect` 接受十进制字符串 `bodyId` 和公共请求字段，返回 `connections`：包括 `bodyId`、`direction:incoming`、上游边总数 `total` 和最多 32 条最强 `items`（每条为 `bodyId` 与突触数 `weight`）。检查不推进神经时钟，在纯感觉模式也可使用。
+
+## 实验动力学
+
+客户端在 `init` 中发送 `dynamics:"adaptive"` 与 `dynamicsEncoding:"adaptive-conductance/1"`，并检查 `ready` 同样确认二者。`dynamics:"reference"` 或省略时继续使用原电流型 LIF。`step.background` 为布尔值，省略时为 false，仅 adaptive 可设为 true。感觉模式仍拒绝人工运动输入和直接脉冲，重置会清空适应与电导状态。
+
+见[方程与开关](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。`smoke.js` 使用 `NEURAL_DYNAMICS=adaptive` 选择新配置，`check-autonomy.js` 固定使用纯感觉自主动力学。这是原版本 2 传输上的显式动力学协商，旧参考客户端行为不变。

@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--format',choices=['full','retained'],required=True)
     parser.add_argument('--seed',type=int,default=1)
     parser.add_argument('--device',choices=['cpu','cuda'],default='cuda')
+    parser.add_argument('--profile',choices=['reference','adaptive'],default='reference')
     args=parser.parse_args()
     try:
         from engine import TorchBrain
@@ -50,7 +51,7 @@ def main():
         emit({'type':'failure','code':'TORCH_NOT_INSTALLED'});return
     neurons,arrays=load_graph(args.model,args.format)
     signs=np.array([1 if r[4] in ('dopamine','octopamine','serotonin') else r[5] for r in neurons])
-    brain=TorchBrain(len(neurons),arrays['offsets'],arrays['sources'],arrays['counts'],signs,args.seed,args.device)
+    brain=TorchBrain(len(neurons),arrays['offsets'],arrays['sources'],arrays['counts'],signs,args.seed,args.device,args.profile)
     by_id={str(row[0]):i for i,row in enumerate(neurons)}
     pulses=[]
     # Population maps are supplied by the JavaScript owner, avoiding separate
@@ -59,7 +60,15 @@ def main():
     mapping=None
     for line in sys.stdin:
         m=json.loads(line)
-        if m['type']=='configure':mapping=m;continue
+        if m['type']=='configure':
+            mapping=m
+            brain.background_mask[m.get('backgroundIndices',[])]=True
+            settings=m.get('backgroundParameters',{})
+            brain.background_rate=settings.get('rateHz',40.)
+            brain.background_kick=settings.get('kickMv',3.)
+            brain.adapt_increment=settings.get('adaptMv',2.)
+            brain.adapt_decay=float(np.exp(-.1/settings.get('adaptTauMs',200.)))
+            continue
         if mapping is None:raise ValueError('MISSING_POPULATIONS')
         typ=m['type']
         if typ=='pulse':
@@ -84,7 +93,7 @@ def main():
             pulses=retained
             for key,ids in mapping['sensory'].items():
                 rates[ids]=np.maximum(rates[ids],m['sensory'].get(key,0))
-            counts=brain.batch(m['steps'],rates,m['silenced'])
+            counts=brain.batch(m['steps'],rates,m['silenced'],m.get('background',False))
             readout=[float(counts[ids].mean()*10000/m['steps']) if ids else 0. for ids in mapping['readout']]
             fired=np.flatnonzero(counts)
             emit({'type':'result','requestId':m['requestId'],'generation':m['generation'],

@@ -49,11 +49,12 @@ export class FlyController {
     for (let i = 0; i < 7; i++)
       this.rates[i] = relax(this.rates[i], Math.max(0, input[i]), dt, 0.08);
     const [wl, wr, tl, tr, back, escape] = this.rates;
-    const walking = Math.max(0, (wl + wr) / 2 - 6),
+    const adaptive=this.profile==='adaptive';
+    const walking = Math.max(0, (wl + wr) / 2 - (adaptive?0:6)),
       reverse = Math.max(0, back - 25);
-    const turn = Math.max(0, tl - 15) - Math.max(0, tr - 15);
-    const groundSpeed = (8 * Math.tanh(walking / 30) - 4 * Math.tanh(reverse / 90)) * (1 - clamp(feeding, 0, 1));
-    this.yawRate = relax(this.yawRate, 3.8 * Math.tanh(turn / 45), dt, 0.04);
+    const turn = Math.max(0, tl - (adaptive?0:15)) - Math.max(0, tr - (adaptive?0:15));
+    const groundSpeed = (8 * Math.tanh(walking / (adaptive?12:30)) - 4 * Math.tanh(reverse / 90)) * (1 - clamp(feeding, 0, 1));
+    this.yawRate = relax(this.yawRate, 3.8 * Math.tanh(turn / (adaptive?20:45)), dt, 0.04);
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (this.mode === 'ground' && escape < 45) this.escapeArmed = true;
     if (this.mode === 'ground' && escape > 100 && this.cooldown === 0 && this.escapeArmed) {

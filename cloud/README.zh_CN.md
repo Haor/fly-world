@@ -10,6 +10,8 @@
 - [模型构建器](tools/build_model.py)
 - [真实客户端与性能验证工具](tools/smoke.js)
 
-完整注释模型包含 211,577 个节点、26,028,386 条有向边，不包含未注释的原始片段。模型和原始文件在本地准备，不提交到仓库。CPU 后端和 PyTorch CPU 对照已测试；CUDA 后端已实现，GPU 硬件执行与公网 TLS 仍需目标环境验证。
+完整注释模型包含 211,577 个节点、26,028,386 条有向边，不包含未注释的原始片段。模型和原始文件在本地准备，不提交到仓库。CPU 后端和 PyTorch CPU 对照已测试；两套动力学和全量 CUDA 感觉对照已在 RTX 4090 D 上通过。原生 Windows 显卡执行与公网 TLS 仍需目标环境验证。
 
 在仓库根目录执行 `npm ci --prefix cloud` 和 `npm test --prefix cloud`。启动前按指南准备模型目录、访问令牌和精确 Origin 白名单。
+
+[自主动力学说明](../fly-host/docs/autonomous-dynamics.zh_CN.md)包含方程、背景开关、相关项目比较与验证边界。

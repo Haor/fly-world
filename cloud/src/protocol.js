@@ -1,3 +1,4 @@
+import {DYNAMICS_ENCODING} from '../../fly-host/src/background.js';
 import { CHANNELS, PULSE_ENVELOPES } from '../../fly-host/src/stimulus.js';
 import { PROTOCOL, STEP_COUNT, DT_MS } from '../../fly-host/src/neural-contract.js';
 import { SENSORY_ENCODING, SENSORY_KEYS } from '../../fly-host/src/habitat.js';
@@ -8,20 +9,23 @@ export function validateInit(m) {
   if(m.type!=='init' || m.protocol!==PROTOCOL || !['malecns-v1.0-full','malecns-v1.0-retained'].includes(m.model) ||
     (m.compute!==undefined && !['cpu','cuda'].includes(m.compute)) ||
     (m.inputMode!==undefined && !['sensory','assisted'].includes(m.inputMode)) ||
+    (m.dynamics!==undefined && !['reference','adaptive'].includes(m.dynamics)) ||
+    (m.dynamics==='adaptive' && m.dynamicsEncoding!==DYNAMICS_ENCODING) ||
     m.dtMs!==DT_MS || m.steps!==STEP_COUNT || m.spikeIds!=='body-id' ||
     m.sensoryEncoding!==SENSORY_ENCODING || JSON.stringify(m.channels)!==JSON.stringify(CHANNELS) ||
     !integer(m.seed) || m.seed>0xffffffff || typeof m.token!=='string' || m.token.length>256)
     throw Error('INVALID_INIT');
 }
-export function validateCommand(m,lastRequest,generation,inputMode = 'assisted') {
+export function validateCommand(m,lastRequest,generation,inputMode = 'assisted', dynamics = 'reference') {
   if(!integer(m.requestId) || m.requestId<=lastRequest || !integer(m.generation))throw Error('INVALID_SEQUENCE');
   if(m.type==='reset') {
     if(m.generation!==generation+1)throw Error('INVALID_GENERATION');
   } else if(m.generation!==generation)throw Error('INVALID_GENERATION');
   switch(m.type) {
     case 'step':
+      if(m.background===true&&dynamics!=='adaptive')throw Error('BACKGROUND_REQUIRES_ADAPTIVE');
       if(inputMode==='sensory' && ['walk','left','right','looming'].some(key=>m.sensory?.[key]!==0))throw Error('MOTOR_INPUT_FORBIDDEN');
-      if(m.steps!==STEP_COUNT || typeof m.silenced!=='boolean' || !m.sensory ||
+      if((m.background!==undefined && typeof m.background!=='boolean') || m.steps!==STEP_COUNT || typeof m.silenced!=='boolean' || !m.sensory ||
         Object.keys(m.sensory).length!==SENSORY_KEYS.length || !SENSORY_KEYS.every(key=>rate(m.sensory[key])))
         throw Error('INVALID_STEP');
       break;

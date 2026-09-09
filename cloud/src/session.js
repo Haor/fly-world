@@ -3,8 +3,8 @@ import { BrainCPU } from '../../fly-host/src/brain.js';
 import { PulseBank, populations, decodeCounts } from '../../fly-host/src/stimulus.js';
 import { sensoryPopulations, addSensoryRates } from '../../fly-host/src/habitat.js';
 
-const {graph, seed}=workerData;
-const brain=new BrainCPU(graph,{seed}), pulses=new PulseBank(graph.n);
+const {graph, seed,profile}=workerData;
+const brain=new BrainCPU(graph,{seed,profile}), pulses=new PulseBank(graph.n);
 const output=populations(graph.neurons), input=sensoryPopulations(graph.neurons);
 const byId=new Map(graph.neurons.map((row,i)=>[String(row[0]),i]));
 parentPort.postMessage({type:'loaded'});
@@ -21,7 +21,7 @@ parentPort.on('message',m=>{
       parentPort.postMessage({type:'reset',requestId:m.requestId,generation:m.generation});
     } else if(m.type==='step') {
       const started=performance.now();
-      const result=brain.batch(m.steps,addSensoryRates(pulses.sample(brain.tick),input,m.sensory),m.silenced);
+      const result=brain.batch(m.steps,addSensoryRates(pulses.sample(brain.tick),input,m.sensory),m.silenced,m.background);
       const rates=Array.from(decodeCounts(result.counts,output,m.steps)), spikes=[];
       for(let i=0;i<graph.n;i++)if(result.counts[i])spikes.push([String(graph.neurons[i][0]),result.counts[i]]);
       parentPort.postMessage({type:'result',requestId:m.requestId,generation:m.generation,

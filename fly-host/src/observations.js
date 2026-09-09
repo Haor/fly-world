@@ -13,7 +13,7 @@ export class Observations {
     this.previous = {x:pose.x,z:pose.z};
     if (pose.time - this.lastSample >= .099) {
       this.samples.push({time:pose.time,walk:(rates[0]+rates[1])/2,escape:rates[5],feed:rates[6],odor:world.odor,x:pose.x,z:pose.z,
-        odorLeft:world.odorLeft,odorRight:world.odorRight,odorTrend:world.odorTrend,forageState:world.forageState});
+        odorLeft:world.odorLeft,odorRight:world.odorRight,odorTrend:world.odorTrend,forageState:world.forageState,dynamics:world.dynamics,background:world.background,visualLeft:world.visualLeft,visualRight:world.visualRight});
       this.lastSample = pose.time;
       while (this.samples.length && this.samples[0].time < pose.time - 12) this.samples.shift();
     }
@@ -24,8 +24,8 @@ export class Observations {
   }
   export() {
     const quote = x => `"${String(x).replaceAll('"','""')}"`;
-    return ['type,neural_seconds,description,walk_hz,escape_hz,feed_hz,odor_input_hz,x_mm,z_mm,odor_left_hz,odor_right_hz,odor_trend_hz_per_s,forage_state',
-      ...this.samples.map(s => ['sample',s.time.toFixed(3),'',s.walk,s.escape,s.feed,s.odor,s.x,s.z,s.odorLeft,s.odorRight,s.odorTrend,s.forageState].join(',')),
-      ...[...this.events].reverse().map(e => ['event',e.time.toFixed(3),quote(e.label),...Array(10).fill('')].join(','))].join('\n');
+    return ['type,neural_seconds,description,walk_hz,escape_hz,feed_hz,odor_input_hz,x_mm,z_mm,odor_left_hz,odor_right_hz,odor_trend_hz_per_s,forage_state,dynamics,background,visual_left_hz,visual_right_hz',
+      ...this.samples.map(s => ['sample',s.time.toFixed(3),'',s.walk,s.escape,s.feed,s.odor,s.x,s.z,s.odorLeft,s.odorRight,s.odorTrend,s.forageState,s.dynamics,s.background,s.visualLeft,s.visualRight].join(',')),
+      ...[...this.events].reverse().map(e => ['event',e.time.toFixed(3),quote(e.label),...Array(14).fill('')].join(','))].join('\n');
   }
 }

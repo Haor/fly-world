@@ -1,3 +1,4 @@
+import {backgroundMask,DYNAMICS_ENCODING} from '../../fly-host/src/background.js';
 import { incomingConnections } from '../../fly-host/src/connections.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -35,7 +36,7 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
   });
   wsServer.on('connection',ws=>{
     sockets.add(ws);
-    let worker,ready=false,authenticated=false,closed=false,lastRequest=0,generation=0,queued=0,stepPending=false,inputMode='assisted',selectedModel=null;
+    let worker,ready=false,authenticated=false,closed=false,lastRequest=0,generation=0,queued=0,stepPending=false,inputMode='assisted',selectedModel=null,dynamics='reference';
     let deadline,job,lastMessage=Date.now(),windowStart=Date.now(),messages=0,alive=true;
     function cleanup(){if(closed)return;closed=true;clearTimeout(deadline);clearTimeout(job);clearInterval(heartbeat);if(worker)Promise.resolve(worker.terminate()).finally(()=>sessions.delete(ws));else sessions.delete(ws);}
     function fail(code){if(closed)return;if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'error',code,message:code,generation}));ws.close(1008,code);cleanup();}
@@ -61,11 +62,12 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
           if(!selected)throw Error('MODEL_UNAVAILABLE');
           const compute=m.compute||'cpu';
           if(compute==='cuda' && !cudaPython)throw Error('CUDA_UNAVAILABLE');
-          inputMode=m.inputMode||'assisted';
+          inputMode=m.inputMode||'assisted';dynamics=m.dynamics||'reference';
+          selected.graph.background=backgroundMask(selected.graph.neurons);
           sessions.add(ws);authenticated=true;clearTimeout(deadline);
           deadline=setTimeout(()=>fail('MODEL_TIMEOUT'),60000);
-          worker=compute==='cuda' ? new PythonSession({python:cudaPython,directory:selected.directory,format:selected.format,seed:m.seed,neurons:selected.graph.neurons}) :
-            new Worker(new URL('./session.js',import.meta.url),{workerData:{graph:selected.graph,seed:m.seed}});
+          worker=compute==='cuda' ? new PythonSession({python:cudaPython,directory:selected.directory,format:selected.format,seed:m.seed,neurons:selected.graph.neurons,profile:dynamics}) :
+            new Worker(new URL('./session.js',import.meta.url),{workerData:{graph:selected.graph,seed:m.seed,profile:dynamics}});
           worker.on('error',()=>fail('WORKER_FAILURE'));
           worker.on('exit',()=>{if(!closed)fail('WORKER_EXIT');});
           worker.on('message',result=>{
@@ -73,7 +75,7 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
             if(result.type==='loaded') {
               clearTimeout(deadline);ready=true;
               send({type:'ready',protocol:PROTOCOL,sensoryEncoding:SENSORY_ENCODING,channels:CHANNELS,
-                inputMode,compute,model:selected.model,metadata:{rows:selected.graph.n}});
+                inputMode,compute,dynamics,dynamicsEncoding:DYNAMICS_ENCODING,model:selected.model,metadata:{rows:selected.graph.n}});
               if(m.metadata===true) {
                 const rows=selected.graph.neurons;
                 for(let offset=0;offset<rows.length;offset+=4096)
@@ -89,7 +91,7 @@ export function createNeuralServer({graph,model,models = null,cudaPython = null,
           return;
         }
         if(!ready)throw Error('NOT_READY');
-        validateCommand(m,lastRequest,generation,inputMode);
+        validateCommand(m,lastRequest,generation,inputMode,dynamics);
         if(queued>=16 || (m.type==='step' && stepPending))throw Error('BACKPRESSURE');
         lastRequest=m.requestId;generation=m.generation;
         if(m.type==='inspect'){send({...incomingConnections(selectedModel.graph,m.bodyId),requestId:m.requestId,generation});return;}
