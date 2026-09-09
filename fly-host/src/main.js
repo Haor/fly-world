@@ -52,7 +52,7 @@ function stateChanged() {
   const usable = s.ready && !s.resetting;
   for (const id of ['pause','reset','random-start','loom','baseline']) $(id).disabled = !usable;
   for (const button of document.querySelectorAll('[data-preset]')) button.disabled = !usable || s.world.options.mode==='sensory';
-  for(const id of ['backend','model-scale','input-mode','service-compute','dynamics'])$(id).disabled=booting||s.phase==='loading'||s.resetting;
+  for(const id of ['backend','model-scale','input-mode','service-compute'])$(id).disabled=booting||s.phase==='loading'||s.resetting;
   $('pause-label').textContent = s.paused ? '继续' : '暂停';
   $('launch-panel').hidden = s.ready;
   $('start').disabled = booting || s.phase === 'loading';
@@ -230,11 +230,6 @@ $('input-mode').onchange=()=>{
 };
 for(const [id,key,scale] of [['light-level','light',100],['light-angle','lightAngle',1]])$(id).oninput=()=>{
   simulation.world.options[key]=Number($(id).value)/scale;simulation.world.sense(simulation.body);render();
-};
-$('dynamics').onchange=()=>{
-  simulation.dynamics=$('dynamics').value;
-  if(assetsReady&&$('backend').value!=='cloud')boot();
-  else if(simulation.ready)simulation.fail('动力学已切换，请重新填写令牌并连接。','idle');else render();
 };
 $('background').onchange=()=>{simulation.background=$('background').checked;if(simulation.ready)simulation.reset();else render();};
 $('service-compute').onchange=()=>{if(simulation.ready&&simulation.backend==='cloud')simulation.fail('计算后端已切换，请重新填写令牌并连接。','idle');};

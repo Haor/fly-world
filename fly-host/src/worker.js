@@ -39,16 +39,16 @@ async function handle(m) {
         const { checkGPU } = await import('./gpu-check.js');
         await checkGPU((g,options) => BrainGPU.create(g,options));
         postMessage({ type: 'stage', message: 'Preparing resident connectome and motor readout…' });
-        brain = await BrainGPU.create(graph,{profile:m.dynamics||"reference"});
+        brain = await BrainGPU.create(graph,{profile:m.dynamics||"adaptive"});
         await brain.prepareReadout(groups);
         backend = 'gpu';
       } catch (error) {
         brain?.destroy?.();
         postMessage({ type: 'fallback', message: error.message });
-        brain = new BrainCPU(graph,{profile:m.dynamics||"reference"});
+        brain = new BrainCPU(graph,{profile:m.dynamics||"adaptive"});
         backend = 'cpu';
       }
-    else brain = new BrainCPU(graph,{profile:m.dynamics||"reference"});
+    else brain = new BrainCPU(graph,{profile:m.dynamics||"adaptive"});
     postMessage({ type: 'ready', backend, dynamics:brain.profile,dynamicsEncoding:DYNAMICS_ENCODING });
   } else if(m.type==='inspect') {
     postMessage({...incomingConnections(graph,m.bodyId),generation});

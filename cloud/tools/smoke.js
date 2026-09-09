@@ -12,7 +12,7 @@ const token=(await readFile(process.env.NEURAL_TOKEN_FILE,'utf8')).trim();
 const neurons=JSON.parse(gunzipSync(await readFile(new URL('../../fly-host/public/data/neurons.json.gz',import.meta.url))));
 class Socket extends WebSocket {constructor(url){super(url,{origin});}}
 const modelId=process.env.NEURAL_MODEL||'malecns-v1.0-full',compute=process.env.NEURAL_COMPUTE||'cpu',inputMode=process.env.NEURAL_INPUT_MODE||'sensory';
-const dynamics=process.env.NEURAL_DYNAMICS||'reference';
+const dynamics=process.env.NEURAL_DYNAMICS||'adaptive';
 let metadataRows=0;
 const brain=new CloudBrain({url,token,neurons,Socket,modelId,compute,inputMode,dynamics,onMetadata:rows=>{metadataRows=rows.length;}}),queue=[],waiting=[];
 brain.onmessage=({data})=>{if(waiting.length)waiting.shift()(data);else queue.push(data);};

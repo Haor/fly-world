@@ -13,7 +13,7 @@ export function cloudURL(value) {
 }
 /** Worker-compatible remote transport. No automatic reconnect or local fallback. */
 export class CloudBrain {
-  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',dynamics='reference',seed=1,onMetadata=null}) {
+  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',dynamics='adaptive',seed=1,onMetadata=null}) {
     this.seed=seed;this.dynamics=dynamics;this.modelId=modelId;this.compute=compute;this.inputMode=inputMode;this.onMetadata=onMetadata;this.metadataRows=[];
     this.url=cloudURL(url);this.token=token;this.neurons=neurons;
     this.byId=new Map(neurons.map((r,i)=>[String(r[0]),i]));

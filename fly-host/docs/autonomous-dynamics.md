@@ -2,15 +2,13 @@
 
 # Autonomous dynamics and the sensory loop
 
-The station defaults to sensory input with the experimental adaptive profile.
+The station uses sensory input with the experimental adaptive profile. The previous reference LIF option is no longer exposed in the station.
 Light, occlusion, bilateral odor, and food contact drive sensory populations.
 The connectome propagates activity to selected movement readouts. Their firing
 rates drive the body; its new pose changes the next sensory sample. There is no
 food-direction command, minimum walking speed, or random movement instruction.
 
-The reference profile preserves the previous current-based LIF equations. The
-adaptive profile is a separate experiment, not a validated extension of the Shiu
-model. Both use the selected retained or full graph and supported compute backend.
+The adaptive profile is a separate experiment, not a validated extension of the Shiu model. It uses the selected retained or full graph and supported compute backend. The former current-based equations remain only as a regression reference and for older service clients.
 
 ## Equations and parameters
 
@@ -90,3 +88,18 @@ and disconnected controls had zero displacement and zero motor output. Changing
 light direction changed downstream activity, but did not establish consistent
 phototaxis. The one-second sensory runs moved 1.19–1.37 mm. Compute throughput was
 about 0.10 neural seconds per wall second; this is not real-time performance.
+
+## Current flight interface gap
+
+The body reads DNp01 for fast escape only. It has no separate spontaneous-takeoff,
+sustained-flight-power, airborne steering, or landing channels. The pooled rate
+is smoothed over 80 ms and must exceed 100 Hz to take off; landing follows after
+0.35–0.9 seconds. One DNp01 spike in a 10 ms batch gives 50 Hz for the two-cell
+population and only about 5.88 Hz after smoothing. Sparse events cannot trigger
+this strong-input gate.
+
+[GF spike-timing research](https://www.nature.com/articles/nn.3741) concerns fast
+escape selection, not a sustained flight controller. [DesktopFly's takeoff code](https://github.com/DenisSergeevitch/desktop-fly/blob/32b00011e83c3dc85fa3ea0b3934155b04f1635d/FlyModel.swift#L708)
+also uses an arousal-dependent random takeoff probability. Future work must separate
+escape events from sustained flight readouts and test sensory recruitment. A lower
+threshold or random takeoff rule alone does not establish connectome-driven flight.

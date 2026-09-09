@@ -4,7 +4,7 @@ import { CloudBrain, cloudURL } from '../src/cloud-brain.js';
 import { CHANNELS } from '../src/stimulus.js';
 import { PROTOCOL } from '../src/neural-contract.js';
 class Socket {constructor(url){this.url=url;this.sent=[];this.readyState=1;}send(s){this.sent.push(JSON.parse(s));}close(){this.readyState=3;}emit(m){this.onmessage({data:JSON.stringify(m)});}}
-const ready={type:'ready',protocol:PROTOCOL,sensoryEncoding:'population-hz/3',channels:CHANNELS,model:{id:'malecns-v1.0-full',scope:'full',neurons:211577,dtMs:.1,connectomeSha256:'a'.repeat(64)}};
+const ready={type:'ready',dynamics:'adaptive',dynamicsEncoding:'adaptive-conductance/1',protocol:PROTOCOL,sensoryEncoding:'population-hz/3',channels:CHANNELS,model:{id:'malecns-v1.0-full',scope:'full',neurons:211577,dtMs:.1,connectomeSha256:'a'.repeat(64)}};
 function fixture(){const events=[],brain=new CloudBrain({url:'ws://localhost:9000/neural',token:'test-only',neurons:[['900000000000000001'],['100']],Socket});brain.onmessage=e=>events.push(e.data);brain.postMessage({type:'init'});brain.socket.onopen();brain.socket.emit(ready);return {brain,events,s:brain.socket};}
 test('remote connection requires WSS except local loopback, with no URL credentials',()=>{
   assert.equal(cloudURL('wss://example.com/neural'),'wss://example.com/neural');
@@ -12,7 +12,7 @@ test('remote connection requires WSS except local loopback, with no URL credenti
 });
 test('handshake, stable body IDs, full-model projection and duplicate responses',()=>{
   const {brain,events,s}=fixture();
-  assert.equal(s.sent[0].protocol,PROTOCOL);assert.equal(brain.token,'');
+  assert.equal(s.sent[0].dynamics,'adaptive');assert.equal(s.sent[0].dynamicsEncoding,'adaptive-conductance/1');assert.equal(s.sent[0].protocol,PROTOCOL);assert.equal(brain.token,'');
   assert.equal(events[0].backend,'cloud');
   brain.postMessage({type:'pulse',indices:[0],strength:180});assert.deepEqual(s.sent.at(-1).bodyIds,['900000000000000001']);assert(!('indices' in s.sent.at(-1)));
   brain.postMessage({type:'step',generation:0,sensory:{sugar:100}});const requestId=s.sent.at(-1).requestId;

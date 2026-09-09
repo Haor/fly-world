@@ -64,4 +64,4 @@ CUDA 引擎使用 PyTorch CSR 稀疏乘法，复现本项目 LIF 更新顺序、
 
 ## 自主动力学
 
-页面选择“自主动力学 · 实验”即可使用新配置。CUDA 验收脚本现在对两套配置做数值对照，再运行全量自主动力学联调。感觉对照可使用同样的令牌与地址环境变量运行 `node cloud/tools/check-autonomy.js`。见[方程与 GPU 结果](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。已验证的 Linux GPU 沿用现有 PyTorch 2.5.1+cu124，未要求升级；新装 Windows 时仍须匹配驱动、CUDA 轮子与 Python 版本。
+页面统一使用自主动力学。CUDA 验收脚本现在对两套配置做数值对照，再运行全量自主动力学联调。感觉对照可使用同样的令牌与地址环境变量运行 `node cloud/tools/check-autonomy.js`。见[方程与 GPU 结果](../../fly-host/docs/autonomous-dynamics.zh_CN.md)。已验证的 Linux GPU 沿用现有 PyTorch 2.5.1+cu124，未要求升级；新装 Windows 时仍须匹配驱动、CUDA 轮子与 Python 版本。
