@@ -299,6 +299,12 @@ export class FlyScene {
     this.controls.update();
     this.onCameraChange?.(view);
   }
+  setEnvironmentLight(world) {
+    if(world.mode!=='sensory'){this.key.intensity=4.2;this.key.position.set(2,-4,7);return;}
+    const angle=(world.lightAngle||0)*Math.PI/180;
+    this.key.intensity=4.2*(world.light??1)*(1-(world.occlusion||0));
+    this.key.position.set(5*Math.sin(angle),-5*Math.cos(angle),7);
+  }
   setShadows(enabled) {
     if (this.renderer.shadowMap.enabled === enabled) return;
     this.renderer.shadowMap.enabled = enabled;

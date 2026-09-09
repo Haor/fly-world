@@ -1,0 +1,2 @@
+# Optional neural backend. On Windows install from a compatible CUDA wheel index.
+torch==2.14.0

@@ -14,7 +14,7 @@ test('sensory input is continuous, independent from pulse clear, and can be disa
 });
 
 test('feeding requires food contact and neural MN9 output', () => {
-  const world = new Habitat(), body = new FlyController(); world.reset(body);
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController(); world.reset(body);
   body.rates[6] = 100; world.advance(body, body.rates, .01);
   assert.equal(world.feeding, 0);
   body.x = FOOD.x; body.z = FOOD.z - .9; body.rates[6] = 0;
@@ -27,7 +27,7 @@ test('feeding requires food contact and neural MN9 output', () => {
 });
 
 test('reset reproduces the trajectory of the authored drive, needs and world clock', () => {
-  const world = new Habitat(), body = new FlyController();
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController();
   const sample = () => {
     body.reset(); world.reset(body);
     const values = [];
@@ -38,7 +38,7 @@ test('reset reproduces the trajectory of the authored drive, needs and world clo
 });
 
 test('world bounds constrain positions without changing heading, including after reset', () => {
-  const world = new Habitat(), body = new FlyController();
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController();
   body.x = 100; body.z = -100; body.yaw = .7;
   world.advance(body, body.rates, .01);
   assert.equal(body.x, BOUND); assert.equal(body.z, -BOUND); assert.equal(body.yaw, .7);
@@ -47,7 +47,7 @@ test('world bounds constrain positions without changing heading, including after
 });
 
 test('environment clock and looming freeze between neural advances', () => {
-  const world = new Habitat(), body = new FlyController(); world.reset(body); world.loom();
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController(); world.reset(body); world.loom();
   const before = world.snapshot();
   for (let i = 0; i < 10; i++) world.sense(body);
   assert.equal(world.time, before.time); assert.equal(world.snapshot().loomingStimulus, true);
@@ -57,7 +57,7 @@ test('environment clock and looming freeze between neural advances', () => {
 });
 
 test('looming stimulus expires in neural time, resets, and never recurs automatically', () => {
-  const world = new Habitat({exploration: 0}), body = new FlyController(); world.reset(body);
+  const world = new Habitat({mode: 'assisted', exploration: 0}), body = new FlyController(); world.reset(body);
   world.loom(); assert.equal(world.sense(body).looming, 120);
   for (let i=0;i<64;i++) world.advance(body, body.rates, .01);
   assert.equal(world.sense(body).looming, 120);
@@ -69,7 +69,7 @@ test('looming stimulus expires in neural time, resets, and never recurs automati
 });
 
 test('a blocked body stops looming input instead of maintaining an escape latch', () => {
-  const world = new Habitat(), body = new FlyController(); world.reset(body);
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController(); world.reset(body);
   body.x = 0; body.z = BOUND; body.velocity = 8;
   world.advance(body, body.rates, .01);
   body.z += .08;
@@ -91,7 +91,7 @@ test('CPU and compact GPU readout include the same seventh feeding channel', () 
 });
 
 test('rendering shadows change drawing only, with no sensory or world-state mutation', () => {
-  const world = new Habitat(), body = new FlyController(); world.reset(body);
+  const world = new Habitat({mode: 'assisted'}), body = new FlyController(); world.reset(body);
   const calls = [], context = new Proxy({}, { get(target, key) {
     return key in target ? target[key] : (...args) => calls.push([key, ...args]);
   }});

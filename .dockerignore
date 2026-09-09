@@ -13,4 +13,3 @@ ai-passport
 **/.env
 **/dist
 **/__pycache__
-fly-host/public

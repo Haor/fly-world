@@ -18,9 +18,11 @@ Windows 将 `python3` 替换为 `py -3.13`。打开 `http://127.0.0.1:8768` 并�
 
 ## 在本机或服务器运行完整注释模型
 
-所有平台使用同一套 WebSocket API。当前服务使用 CPU，每个会话一个仿真线程，不使用 CUDA 或 PC 显卡。
+所有平台使用同一套 WebSocket API。可选择轻量或全量模型，使用 CPU 参考实现或可选的 PyTorch CUDA 后端。
 
 - [Windows PC、Linux/macOS、Docker 与跨机连接指南](cloud/docs/deployment.zh_CN.md)
+- [Windows CUDA 安装与验收](cloud/docs/cuda-windows.zh_CN.md)
+- [官方骨架与神经空间图](fly-host/docs/anatomy.zh_CN.md)
 - [API 文档](cloud/docs/api.zh_CN.md)
 - [推理服务实现](cloud/README.zh_CN.md)
 
@@ -28,10 +30,14 @@ Windows 将 `python3` 替换为 `py -3.13`。打开 `http://127.0.0.1:8768` 并�
 
 | 模型 | 节点 | 有向连接 | 范围 |
 | --- | ---: | ---: | --- |
-| 浏览器 | 166,700 | 25,582,938 | 含 superclass 的注释节点 |
-| 推理服务 | 211,577 | 26,028,386 | 全部注释节点及其诱导子图 |
+| 轻量 | 166,700 | 25,582,938 | 含 superclass 的注释节点 |
+| 全量 | 211,577 | 26,028,386 | 全部注释节点及其诱导子图 |
 
 原始片段连接图还包含未注释碎片，两种模型都不包含它们。节点更多不代表生物学更准确：LIF 参数、身体解码、饥饿/精力和可选寻食辅助都包含工程设定。详见[模型验证](fly-host/docs/neural-validation.zh_CN.md)与[寻食机制和开关](fly-host/docs/foraging.zh_CN.md)。
+
+当前默认纯感觉模式，根据光照、遮挡、气味和食物接触输入感觉信号，不注入步行或转向指令。早期视觉采用 L1/L2 代理，尚非完整视网膜。辅助实验模式仍可选。
+
+全量神经视图可定位 211,573 个节点，缺少胞体字段的节点使用官方骨架计算代表位置。点击节点可读取分支形态和上游连接。
 
 ## AI Passport 伴侣设备
 

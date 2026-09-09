@@ -2,7 +2,7 @@
 
 # Odor-guided foraging
 
-Odor input and the navigation aid are on by default. Disable the aid to retain
+Odor input is on by default. The navigation aid is active only in Assisted experiment mode. Sensory-only is the default mode. Disable the aid to retain
 sensory input without its steering policy. Disable odor to return to the original
 exploration drive. The field overlay controls rendering only. Reset clears odor
 history and needs but preserves the switches. Pause also pauses sensory adaptation.

@@ -2,25 +2,25 @@
 
 # 推理服务 API
 
-本机回环使用 WS，远程使用 WSS，端点为 `/neural`。协议版本 `fly-world-neural/1`，感觉编码 `population-hz/2`。Windows 本地 PC 和云主机使用相同接口。浏览器维护环境、身体、感觉适应和寻食辅助；服务只维护神经状态，不返回食物坐标或渲染图像。
+本机回环使用 WS，远程使用 WSS，端点为 `/neural`。协议版本 `fly-world-neural/2`，感觉编码 `population-hz/3`。Windows 本地 PC 和云主机使用相同接口。浏览器维护环境、身体、感觉适应和寻食辅助；服务只维护神经状态，不返回食物坐标或渲染图像。
 
 ## HTTP 与握手
 
-`GET /healthz` 返回 `{ "status": "ready", "sessions": 0, "maxSessions": 1 }`；`GET /v1/model` 返回 `protocol`、`sensoryEncoding` 和 `model`，这些元数据端点不要求令牌，其他 HTTP 路径返回 404。WebSocket 升级必须携带精确匹配白名单的 `Origin`，命令行客户端同样如此。
+`GET /healthz` 返回 `{ "status": "ready", "sessions": 0, "maxSessions": 1 }`；`GET /v1/models` 列出可用模型与配置后端。`GET /v1/model` 返回 `protocol`、`sensoryEncoding` 和 `model`，这些元数据端点不要求令牌，其他 HTTP 路径返回 404。WebSocket 升级必须携带精确匹配白名单的 `Origin`，命令行客户端同样如此。
 
 连接后五秒内发送第一条文本消息：
 
 ```json
-{"type":"init","protocol":"fly-world-neural/1","model":"malecns-v1.0-full","seed":1,"dtMs":0.1,"steps":100,"channels":["walkLeft","walkRight","turnLeft","turnRight","reverse","escape","feed"],"spikeIds":"body-id","sensoryEncoding":"population-hz/2","token":"YOUR_LOCAL_TOKEN"}
+{"type":"init","protocol":"fly-world-neural/2","model":"malecns-v1.0-full","compute":"cpu","inputMode":"sensory","metadata":true,"seed":1,"dtMs":0.1,"steps":100,"channels":["walkLeft","walkRight","turnLeft","turnRight","reverse","escape","feed"],"spikeIds":"body-id","sensoryEncoding":"population-hz/3","token":"YOUR_LOCAL_TOKEN"}
 ```
 
 `seed` 为无符号 32 位整数。令牌校验通过后才分配神经状态。收到 `ready` 后再发命令：
 
 ```json
-{"type":"ready","protocol":"fly-world-neural/1","sensoryEncoding":"population-hz/2","channels":["walkLeft","walkRight","turnLeft","turnRight","reverse","escape","feed"],"model":{"id":"malecns-v1.0-full","scope":"full","coverage":"all-annotated-bodies","neurons":211577,"edges":26028386,"synapses":125365933,"dtMs":0.1,"connectomeSha256":"<64 hex characters>"}}
+{"type":"ready","protocol":"fly-world-neural/2","sensoryEncoding":"population-hz/3","compute":"cpu","inputMode":"sensory","channels":["walkLeft","walkRight","turnLeft","turnRight","reverse","escape","feed"],"model":{"id":"malecns-v1.0-full","scope":"full","coverage":"all-annotated-bodies","neurons":211577,"edges":26028386,"synapses":125365933,"dtMs":0.1,"connectomeSha256":"<64 hex characters>"}}
 ```
 
-校验和绑定精确的清单内容，其中包含每个模型文件的校验和与来源。`scope: full` 受 `coverage` 限定，不包括未注释片段。观测站将返回的 body ID 映射到本地 166,700 节点的可视化投影。
+校验和绑定精确的清单内容，其中包含每个模型文件的校验和与来源。`scope: full` 受 `coverage` 限定，不包括未注释片段。观测站接收所选模型全部节点元数据，按该模型映射所有返回的 body ID。
 
 ## 命令顺序
 
@@ -28,7 +28,7 @@
 
 | 命令 | 必填字段 | 响应 |
 | --- | --- | --- |
-| `step` | `steps:100`、布尔 `silenced`、七个感觉字段 | `result` |
+| `step` | `steps:100`、布尔 `silenced`、九个感觉字段 | `result` |
 | `pulse` | `bodyIds`、`strength`、`profile`、`replace` | 成功时无单独确认 |
 | `clear` | 公共字段 | 成功时无单独确认 |
 | `reset` | 公共字段，代次恰好加一 | `reset` 确认 |
@@ -36,10 +36,10 @@
 每步请求代表 10 ms 神经时间：
 
 ```json
-{"type":"step","requestId":1,"generation":0,"steps":100,"silenced":false,"sensory":{"walk":180,"left":0,"right":0,"looming":0,"sugar":0,"odorLeft":12,"odorRight":4}}
+{"type":"step","requestId":1,"generation":0,"steps":100,"silenced":false,"sensory":{"walk":0,"left":0,"right":0,"looming":0,"sugar":0,"odorLeft":12,"odorRight":4,"visualLeft":30,"visualRight":10}}
 ```
 
-七个感觉字段都必须提供，单位 Hz，范围为有限的 0–300。服务端不会再次应用浏览器中的感觉适应或寻食策略。
+九个感觉字段都必须提供，单位 Hz，范围为有限的 0–300。服务端不会再次应用浏览器中的感觉适应或寻食策略。
 
 | 输入 | 神经群体 |
 | --- | --- |
@@ -48,6 +48,7 @@
 | `looming` | LC4、LPLC2 |
 | `sugar` | LB3b、LB3c |
 | `odorLeft` / `odorRight` | L/R 标注的 ORN_DM1 |
+| `visualLeft` / `visualRight` | L/R L1、L2，早期视觉代理 |
 
 群体定义复用 `fly-host/src/habitat.js`。`silenced` 关闭突触传播，直接被刺激的神经元仍可能放电。
 
@@ -87,3 +88,13 @@
 超大请求由 WebSocket 库以 1009 关闭；传输故障可能没有 JSON 错误帧。其他限额见[运行指南](deployment.zh_CN.md)。Origin 白名单不能替代鉴权，两者都要求。暂停连接通过自动 ping/pong 保持状态。
 
 执行 `npm test --prefix cloud` 运行网络与协议测试，或对运行中的服务执行 `NEURAL_TOKEN_FILE=cloud/secrets/neural-token node cloud/tools/smoke.js`。[Windows 命令与 PC 基准测试](deployment.zh_CN.md)另有说明。
+
+## 第二版的模型与输入方式
+
+`init.model` 可为 `malecns-v1.0-retained` 或 `malecns-v1.0-full`；`compute` 为 `cpu` 或 `cuda`；`inputMode` 为 `sensory` 或 `assisted`。新客户端显式填写三者。`GET /v1/models` 列出配置的模型与后端，CUDA 是否真正可用会在启动进程时检查。`ready` 回传 compute 和 inputMode。
+
+指定 `metadata:true` 后，`ready` 后依次发送 `metadata` 帧，包含 `offset`、最多 4096 行的 `neurons`、`complete`。每行为 `[bodyId, type, superclass, side, neurotransmitter, sign, position]`；`bodyId` 是十进制字符串，`position` 为 null 或以 8 nm 为单位的三坐标，其他注释字段为字符串，`sign` 为 -1、0 或 1。客户端收到声明的完整行数后才开始推理。消息中不填人工坐标；缺少胞体位置的节点通过另行打包的官方骨架定位补充数据恢复空间位置。
+
+纯感觉模式要求 `walk`、`left`、`right`、`looming` 为零，并禁止 `pulse`。违规时以 `MOTOR_INPUT_FORBIDDEN` 或 `DIRECT_PULSE_FORBIDDEN` 关闭连接；上面的脉冲示例只适用于 assisted 会话。CUDA 失败返回 `CUDA_UNAVAILABLE`、`TORCH_NOT_INSTALLED` 或 `CUDA_OPERATION_FAILED`，不自动切换后端。
+
+`inspect` 接受十进制字符串 `bodyId` 和公共请求字段，返回 `connections`：包括 `bodyId`、`direction:incoming`、上游边总数 `total` 和最多 32 条最强 `items`（每条为 `bodyId` 与突触数 `weight`）。检查不推进神经时钟，在纯感觉模式也可使用。

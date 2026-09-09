@@ -12,8 +12,8 @@ const graph={n:4,neurons:[['1','LC9','x','L','acetylcholine',1],['2','DNp09','x'
   ['3','MN9','x','R','acetylcholine',1],['4','ORN_DM1','x','R','acetylcholine',1]],
   sign:new Int32Array([1,1,1,1]),offsets:new Uint32Array([0,0,1,2,2]),sources:new Uint32Array([0,1]),counts:new Uint32Array([100,100])};
 const model={id:'malecns-v1.0-full',scope:'test-fixture',neurons:4,dtMs:.1,connectomeSha256:'a'.repeat(64)};
-const init={type:'init',protocol:'fly-world-neural/1',model:model.id,dtMs:.1,steps:100,seed:1,
-  channels:CHANNELS,spikeIds:'body-id',sensoryEncoding:'population-hz/2',token};
+const init={type:'init',protocol:'fly-world-neural/2',model:model.id,dtMs:.1,steps:100,seed:1,
+  channels:CHANNELS,spikeIds:'body-id',sensoryEncoding:'population-hz/3',token};
 const step=(requestId,generation=0)=>({type:'step',requestId,generation,steps:100,silenced:false,sensory:Object.fromEntries(SENSORY_KEYS.map(key=>[key,key==='walk'?200:0]))});
 async function fixture(t,options={}) {
   const service=createNeuralServer({graph,model,token,origins:[origin],...options});
@@ -95,4 +95,27 @@ test('manual pulse and clear operate independently from continuous input',async 
   c.send({type:'pulse',requestId:8,generation:1,bodyIds:['1'],strength:300,profile:'paint',replace:true});
   c.send({type:'clear',requestId:9,generation:1});
   c.send({...quiet(10),generation:1});assert.equal((await c.next()).total,0);
+});
+test('pure sensory sessions reject motor drives and pulses at the API boundary',async t=>{
+  const f=await fixture(t,{maxSessions:2});
+  for(const operation of [step(1),{type:'pulse',requestId:1,generation:0,bodyIds:['1'],strength:100,profile:'paint',replace:true}]) {
+    const c=await client(f.url);c.send({...init,inputMode:'sensory'});await c.next();c.send(operation);
+    const error=await c.next();assert(['MOTOR_INPUT_FORBIDDEN','DIRECT_PULSE_FORBIDDEN'].includes(error.code));
+  }
+});
+test('model selection returns the matching full metadata and refuses an unavailable CUDA backend',async t=>{
+  const smaller={graph:{...graph,n:4},model:{...model,id:'malecns-v1.0-retained',scope:'retained'}};
+  const f=await fixture(t,{models:[{graph,model},smaller],maxSessions:2});
+  const c=await client(f.url);c.send({...init,model:smaller.model.id,metadata:true});
+  const ready=await c.next();assert.equal(ready.model.id,smaller.model.id);
+  const metadata=await c.next();assert.equal(metadata.neurons.length,4);assert(metadata.complete);
+  const unavailable=await client(f.url);unavailable.send({...init,compute:'cuda'});
+  assert.equal((await unavailable.next()).code,'CUDA_UNAVAILABLE');
+});
+test('inspect returns selected-model connectivity in sensory mode without advancing time',async t=>{
+  const f=await fixture(t),c=await client(f.url);c.send({...init,inputMode:'sensory'});await c.next();
+  c.send({type:'inspect',requestId:1,generation:0,bodyId:'2'});
+  const edges=await c.next();assert.equal(edges.type,'connections');assert.deepEqual(edges.items,[{bodyId:'1',weight:100}]);
+  c.send({...step(2),sensory:Object.fromEntries(SENSORY_KEYS.map(key=>[key,0]))});
+  assert.equal((await c.next()).tick,100);
 });

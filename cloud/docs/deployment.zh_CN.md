@@ -4,7 +4,7 @@
 
 同一套 Node.js 服务可运行在 Windows、macOS、Linux 或云主机上，观测站通过统一的 [WebSocket API](api.zh_CN.md) 连接。Docker 和公网域名都是可选项。
 
-当前后端是每会话一个 CPU 仿真线程，**不使用 CUDA 或 PC 的显卡**；增加 CPU 核数不会直接加速单只果蝇。后续 GPU 后端可以保持相同 API 和数值契约，前端不必改协议。
+服务支持 CPU 参考实现和可选 PyTorch CUDA 后端，轻量与全量模型共用 API。Windows NVIDIA 安装与验收见 [CUDA 指南](cuda-windows.zh_CN.md)。CPU 会话仍是单个仿真线程；CUDA 尚未在开发机上做硬件验收。
 
 ## 数据范围与资源
 

@@ -47,5 +47,5 @@ export async function loadModel(directory) {
   const signBuffer = new SharedArrayBuffer(n*4);
   graph.sign = new Int32Array(signBuffer);
   neurons.forEach((row,i)=>{graph.sign[i]=['dopamine','octopamine','serotonin'].includes(row[4])?1:row[5];});
-  return {graph, model:{...manifest.model,connectomeSha256:sha(bytes)}, provenance:manifest.provenance};
+  return {directory:resolve(directory),format:'full',graph, model:{...manifest.model,connectomeSha256:sha(bytes)}, provenance:manifest.provenance};
 }

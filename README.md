@@ -24,10 +24,12 @@ PC-only observation; USB requires the separate [companion bridge](ai-passport/do
 
 ## Full-annotation inference on your PC or server
 
-The service exposes one WebSocket API on all platforms. The current engine is CPU,
-with one simulation worker per connection; it does not use CUDA or a PC's GPU.
+The service exposes one WebSocket API on all platforms. Choose retained or full
+model inference with the CPU reference engine or optional PyTorch CUDA backend.
 
 - [Windows PC, Linux/macOS, Docker, and remote connection guide](cloud/docs/deployment.md)
+- [Windows CUDA installation and checks](cloud/docs/cuda-windows.md)
+- [Official anatomy and neural graph](fly-host/docs/anatomy.md)
 - [API reference](cloud/docs/api.md)
 - [Service implementation](cloud/README.md)
 
@@ -37,14 +39,22 @@ backups are excluded from Git. No hosted endpoint is required to use the project
 
 | Model | Nodes | Directed edges | Scope |
 | --- | ---: | ---: | --- |
-| Browser | 166,700 | 25,582,938 | Annotation rows with a superclass |
-| Inference service | 211,577 | 26,028,386 | Every annotation row; induced graph |
+| Retained | 166,700 | 25,582,938 | Annotation rows with a superclass |
+| Full | 211,577 | 26,028,386 | Every annotation row; induced graph |
 
 The raw segment graph also contains unannotated fragments. They are not included
 in either model. More nodes do not establish biological accuracy: LIF parameters,
 body decoding, hunger/energy, and the optional foraging aid include engineering
 assumptions. See [model validation](fly-host/docs/neural-validation.md) and
 [foraging behavior and controls](fly-host/docs/foraging.md).
+
+The default sensory mode derives inputs from light, occlusion, odor, and food
+contact. It does not inject walk or turn commands. Early vision uses an L1/L2
+proxy, not a complete retina. Assisted experiments remain available.
+
+The full neural view has 211,573 spatially located nodes. Missing soma fields are
+supplemented with positions derived from official skeletons. Select a node to
+load its branches and inspect upstream connections.
 
 ## AI Passport companion
 

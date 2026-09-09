@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
+import {attachAnatomy} from '../src/anatomy.js';
 import {loadLocalGraph} from './load-graph.js';
 const root=new URL('../public/data/',import.meta.url),manifest=JSON.parse(readFileSync(new URL('manifest.json',root)));
 for(const a of manifest.arrays)for(const p of a.parts)assert.equal(createHash('sha256').update(readFileSync(new URL(p.file,root))).digest('hex'),p.sha256);
@@ -9,4 +11,12 @@ assert.equal(g.offsets.length,g.n+1);assert.equal(g.offsets[0],0);assert.equal(g
 for(let i=1;i<g.offsets.length;i++)assert(g.offsets[i]>=g.offsets[i-1]);
 let total=0;for(let i=0;i<g.sources.length;i++){assert(g.sources[i]<g.n);assert(g.counts[i]>0);total+=g.counts[i];}
 assert.equal(total,manifest.synapses);
+const anatomyBytes=readFileSync(new URL('anatomy.json.gz',root));
+assert.equal(createHash('sha256').update(anatomyBytes).digest('hex'),'f9e82fa1c2454b64360d7225fada314a21332e0eba83524a8bed83bf903e3d2b');
+const anatomy=JSON.parse(gunzipSync(anatomyBytes));
+assert.equal(anatomy.units,'8nm');assert.equal(Object.keys(anatomy.positions).length,69792);
+for(const p of Object.values(anatomy.positions))assert(p.length===3&&p.every(Number.isFinite));
+const positioned=attachAnatomy(g.neurons,anatomy);
+for(let i=0;i<g.n;i++)if(g.neurons[i][6])assert.deepEqual(positioned[i][6],g.neurons[i][6]);
+else assert(positioned[i][6]||anatomy.unresolved[String(g.neurons[i][0])]);
 console.log(JSON.stringify({result:'PASS',neurons:g.n,edges:g.sources.length,synapses:total,checksumParts:manifest.arrays.reduce((n,a)=>n+a.parts.length,0)}));

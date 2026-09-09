@@ -42,7 +42,7 @@ test('restart discards old worker messages and restores a fresh neural world',()
 test('manual pulses and continuous environment are independently controlled',()=>{
   const {sim,workers}=fixture();
   try {
-    sim.start();workers[0].emit({type:'ready',backend:'cpu'});
+    sim.world.options.mode='assisted';sim.start();workers[0].emit({type:'ready',backend:'cpu'});
     assert(workers[0].sent.at(-1).sensory.walk>0);
     sim.clear();assert.equal(workers[0].sent.at(-1).type,'clear');
     assert(sim.world.options.enabled);
@@ -67,7 +67,7 @@ test('odor field visualization uses the same distance encoding as the neural inp
   assert.equal(odorRateAt(FOOD.x,FOOD.z),25);
   assert(odorRateAt(FOOD.x+7,FOOD.z)<25);
   assert.equal(odorRateAt(FOOD.x+7,FOOD.z),odorRateAt(FOOD.x-7,FOOD.z));
-  const world=new Habitat({odor:true});
+  const world=new Habitat({mode: 'assisted', odor:true});
   const pose={x:0,z:0,y:0,yaw:0,velocity:0};
   const raw=antennaSamples(pose,odorRateAt), sensed=world.sense(pose);
   assert.equal(sensed.odorLeft,raw.left); assert.equal(sensed.odorRight,raw.right);

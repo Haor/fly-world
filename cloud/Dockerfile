@@ -3,6 +3,8 @@ WORKDIR /app/cloud
 COPY cloud/package.json cloud/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY cloud/src ./src
+COPY cloud/python ./python
+COPY fly-host/public/data /app/fly-host/public/data
 COPY cloud/tools/smoke.js ./tools/smoke.js
 COPY fly-host/src /app/fly-host/src
 USER node

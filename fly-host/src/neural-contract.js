@@ -1,5 +1,5 @@
 import { CHANNELS } from './stimulus.js';
-export const PROTOCOL = 'fly-world-neural/1';
+export const PROTOCOL = 'fly-world-neural/2';
 export const STEP_COUNT = 100;
 export const DT_MS = .1;
 export function validateResult(m, tick, projectionSize = 166700) {

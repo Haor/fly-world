@@ -1,3 +1,4 @@
+import { incomingConnections } from './connections.js';
 import { loadGraph, configureAssetBase } from './data-loader.js';
 import { BrainCPU } from './brain.js';
 import { PulseBank, populations, decodeCounts } from './stimulus.js';
@@ -47,6 +48,8 @@ async function handle(m) {
       }
     else brain = new BrainCPU(graph);
     postMessage({ type: 'ready', backend });
+  } else if(m.type==='inspect') {
+    postMessage({...incomingConnections(graph,m.bodyId),generation});
   } else if (m.type === 'pulse') {
     if (m.replace) pulses.reset();
     pulses.add(m.indices, brain.tick, m.strength, m.profile ?? 'paint');

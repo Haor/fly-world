@@ -1,3 +1,5 @@
+import { sensoryGain, lightSamples } from './environment-senses.js';
+import { populations, CHANNELS } from './stimulus.js';
 import { antennaSamples, Olfaction, forageDrive } from './olfaction.js';
 /** Authored environment and sensory encoders. Distances are mm; time is neural seconds. */
 export const TILE_SCALE = 0.16;
@@ -8,9 +10,9 @@ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 export const FOOD = Object.freeze({ x: tileToMM(1), z: tileToMM(4), radius: 1.4 });
 export const ROCK = Object.freeze({ x: tileToMM(5), z: tileToMM(2), radius: 2.2 });
 export const BOUND = tileToMM(4.65);
-export const WORLD_DEFAULTS = Object.freeze({ enabled: true, exploration: 1, vision: true, taste: true, odor: true, foraging: true });
-export const SENSORY_ENCODING = 'population-hz/2';
-export const SENSORY_KEYS = Object.freeze(['walk', 'left', 'right', 'looming', 'sugar', 'odorLeft', 'odorRight']);
+export const WORLD_DEFAULTS = Object.freeze({ enabled: true, exploration: 1, vision: true, taste: true, odor: true, foraging: true, mode: 'sensory', light: 1, lightAngle: 0, sensoryGain: 1 });
+export const SENSORY_ENCODING = 'population-hz/3';
+export const SENSORY_KEYS = Object.freeze(['walk', 'left', 'right', 'looming', 'sugar', 'odorLeft', 'odorRight', 'visualLeft', 'visualRight']);
 export function randomSpawn(random = Math.random) {
   return {x: -10 + random() * 20, z: -10 + random() * 13, yaw: random() * Math.PI * 2};
 }
@@ -45,7 +47,7 @@ export class Habitat {
   loom() { this.loomUntil = this.time + 0.65; }
   emptySignals() {
     return { walk: 0, left: 0, right: 0, looming: 0, sugar: 0, odor: 0,
-      odorLeft: 0, odorRight: 0, rawLeft: 0, rawRight: 0, odorTrend: 0,
+      odorLeft: 0, odorRight: 0, rawLeft: 0, rawRight: 0, odorTrend: 0, visualLeft: 0, visualRight: 0,
       forageState: 'inactive', contact: false };
   }
   contact(pose) {
@@ -68,21 +70,29 @@ export class Habitat {
     word = Math.imul(word ^ (word >>> 16), 2246822519) >>> 0;
     word ^= word >>> 13;
     const turning = t > 1.5 && t % 2.8 > 1.7 && !eatingContact && active;
-    if (turning) s[word & 1 ? 'left' : 'right'] = 65 * gain;
+    if (this.options.mode === 'sensory') { s.walk = 0; }
+    if (turning && this.options.mode !== 'sensory') s[word & 1 ? 'left' : 'right'] = 65 * gain;
     if (this.options.taste && eatingContact) s.sugar = 100;
     if (this.options.odor) {
       const odor = this.olfaction.sample(antennaSamples(pose, odorRateAt), t);
       Object.assign(s, {odorLeft: odor.odorLeft, odorRight: odor.odorRight,
         rawLeft: odor.rawLeft, rawRight: odor.rawRight, odorTrend: odor.trend,
         odor: (odor.odorLeft + odor.odorRight) / 2});
-      if (this.options.foraging && !this.satiated && !this.resting) {
+      if (this.options.mode !== 'sensory' && this.options.foraging && !this.satiated && !this.resting) {
         const drive = forageDrive(odor, {time: t, hunger: this.hunger, satiated: this.satiated,
           resting: this.resting, contact: eatingContact, grounded: pose.y < .15, gain});
         s.walk = drive.walk; s.left = drive.left; s.right = drive.right;
         s.forageState = drive.state;
       }
     } else this.olfaction.reset();
-    if (this.options.vision) {
+    if (this.options.vision && this.options.mode === 'sensory') {
+      const age = .65 - (this.loomUntil - t);
+      const occlusion = t < this.loomUntil ? .85 * Math.sin(Math.PI * Math.max(0, age) / .65) : 0;
+      const light = lightSamples(pose, this.options, ROCK, occlusion);
+      s.visualLeft = sensoryGain(light.left, this.options.sensoryGain);
+      s.visualRight = sensoryGain(light.right, this.options.sensoryGain);
+    }
+    if (this.options.vision && this.options.mode !== 'sensory') {
       const forward = { x: Math.sin(pose.yaw), z: Math.cos(pose.yaw) };
       const speed = this.speed;
       const rays = [];
@@ -131,7 +141,8 @@ export class Habitat {
     return controller.pose();
   }
   snapshot() {
-    return { ...this.signals, time: this.time, hunger: this.hunger, energy: this.energy,
+    return { ...this.signals, mode:this.options.mode, light:this.options.light,lightAngle:this.options.lightAngle,
+      occlusion: this.options.mode==='sensory'&&this.time<this.loomUntil ? .85*Math.sin(Math.PI*(.65-this.loomUntil+this.time)/.65) : 0, time: this.time, hunger: this.hunger, energy: this.energy,
       feeding: this.feeding, feedSeconds: this.feedSeconds, loomingStimulus: this.options.enabled && this.options.vision && this.time < this.loomUntil };
   }
 }
@@ -146,7 +157,13 @@ export function sensoryPopulations(neurons) {
     if (['LB3b', 'LB3c'].includes(r[1])) g.sugar.push(i);
     if (r[1] === 'ORN_DM1' && r[3] === 'L') g.odorLeft.push(i);
     if (r[1] === 'ORN_DM1' && r[3] === 'R') g.odorRight.push(i);
+    if (['L1','L2'].includes(r[1]) && r[3] === 'L') g.visualLeft.push(i);
+    if (['L1','L2'].includes(r[1]) && r[3] === 'R') g.visualRight.push(i);
   });
+  const output = populations(neurons);
+  const motor = new Set(CHANNELS.flatMap(key => output[key]));
+  for (const key of ['odorLeft','odorRight','sugar','visualLeft','visualRight'])
+    g[key] = g[key].filter(i => !motor.has(i));
   return g;
 }
 

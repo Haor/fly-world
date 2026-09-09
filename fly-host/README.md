@@ -29,8 +29,7 @@ The station can run without a USB device.
 
 The static odor field is `25 * exp(-distance_mm / 7)`. Two antennae sample it
 separately; a simplified adaptation stage supplies left/right ORN_DM1 rates.
-Odor input and the navigation aid are enabled by default and have separate
-switches. The aid uses local concentration differences and recent changes to
+Odor input is enabled by default. The navigation aid requires Assisted experiment mode and has a separate switch. The aid uses local concentration differences and recent changes to
 drive LC9 and DNa02. It does not read the food position or move the body directly.
 This is an engineered strategy, not demonstrated emergent neural navigation.
 Wind is absent. The field overlay shows pre-adaptation values and is display-only.
@@ -61,3 +60,9 @@ physical USB checks are separate from these tests.
 The default overview shows all three views alongside the live data. Each individual view remains available.
 
 Implementation evidence: [neural validation](docs/neural-validation.md). Remote extension: [cloud inference contract](docs/cloud-inference.md).
+
+## Model and sensory modes
+
+Sensory-only is now the default: no authored walk, turn, or foraging drive. The environment supplies bilateral odor, contact taste, and bilateral early-visual input. Light level, direction, and brief occlusion affect input. L1/L2 vision remains a proxy, not a reconstructed retina. The previous motor drives require Assisted experiment mode.
+
+Choose the retained or full model; the diagram uses every selected model ID. Positions come from official soma annotations and SWC skeleton representative positions, never a fabricated grid. Click a node to load its complete SWC branches and strongest 32 incoming connections. Edges come from the selected inference graph; skeletons come from official public data. See [anatomy](docs/anatomy.md) and [Windows CUDA](../cloud/docs/cuda-windows.md).

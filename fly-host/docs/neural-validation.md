@@ -55,7 +55,7 @@ Remaining limits:
 - Analytic looming bypasses the retina. ORN_DM1 input uses bilateral sampling
   and simplified adaptation. The optional navigation aid is authored; its behavior
   is not proof of emergent connectome navigation. See [foraging](foraging.md).
-- LC9 tonic input and DNa02 turn bias are authored. DNa02 directly drives an output
+- In assisted mode, LC9 tonic input and DNa02 turn bias are authored. DNa02 directly drives an output
   pathway; that component of turning is not evidence of spontaneous decisions.
 - Boundary collisions constrain position without choosing a turn. Outward motor
   output can leave the fly stationary at an edge; reliable autonomous avoidance
@@ -70,3 +70,17 @@ Run `node --test tests/*.test.js`, `node tests/data-integrity.mjs`,
 `node tests/closed-loop.mjs`, and `npm run build` to repeat the local checks.
 See the [cloud contract](cloud-inference.md) for its separate verification gaps.
 A larger or faster graph does not remove these model assumptions.
+
+## Sensory mode and CUDA
+
+Sensory mode is now the default. It sets authored walk, turn, and looming-population
+rates to zero and rejects direct pulses at both client and service boundaries.
+Light and occlusion drive bilateral L1/L2 as an early-visual proxy. Histaminergic
+photoreceptor transmission and a complete retina are not modeled. This does not
+establish autonomous foraging or biological fidelity.
+
+The optional PyTorch backend follows the existing LIF event order. A seeded
+800-step fixture checks counts, membrane values, excitation, inhibition, delay,
+and reset against JavaScript. It passes on PyTorch CPU. Actual CUDA hardware and
+long full-model spike equivalence still require testing; see the
+[Windows CUDA checks](../../cloud/docs/cuda-windows.md).

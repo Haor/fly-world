@@ -18,7 +18,7 @@ const starts = Array.from({length: trials}, () => ({x: -5 + random() * 16, z: -1
 const summaries = [];
 for (const [trial, start] of starts.entries()) for (const mode of modes) {
   brain.seed = trial + 1; brain.reset();
-  const world = new Habitat({odor: mode !== 'odor-off', foraging: mode !== 'aid-off'});
+  const world = new Habitat({mode: 'assisted', odor: mode !== 'odor-off', foraging: mode !== 'aid-off'});
   const body = new FlyController(); world.reset(body); Object.assign(body, start);
   world.previousX = body.x; world.previousZ = body.z;
   let firstContact = null, firstFeed = null, spikes = 0;

@@ -4,9 +4,9 @@ import { validateResult } from './neural-contract.js';
 
 /** Simulation lifecycle is independent from the observation UI and USB transport. */
 export class Simulation {
-  constructor({assetBase, onState = () => {}, onResult = () => {}, canStep = () => true,
+  constructor({assetBase, onState = () => {}, onResult = () => {}, onConnections = () => {}, canStep = () => true,
     createWorker = () => new Worker(new URL('./worker.js', import.meta.url), {type: 'module'})}) {
-    Object.assign(this, {assetBase, onState, onResult, canStep, createWorker});
+    Object.assign(this, {assetBase, onState, onResult, onConnections, canStep, createWorker});
     this.body = new FlyController();
     this.world = new Habitat();
     this.world.reset(this.body);
@@ -35,12 +35,13 @@ export class Simulation {
       if (epoch !== this.epoch) return;
       if (m.type === 'stage' || m.type === 'progress') {
         this.progress = m.type === 'progress' ? m.value : null;
-        this.detail = m.type === 'progress' ? `本地连接数据 · ${Math.round(m.value * 100)}%` : '正在读取本地数据并准备计算…';
+        this.detail = m.type === 'progress' ? `本地连接数据 · ${Math.round(m.value * 100)}%` : m.message || '正在读取本地数据并准备计算…';
         this.emit(); this.arm(180000);
       } else if (m.type === 'fallback') {
         this.detail = 'WebGPU 不可用，正在启用 JavaScript 计算。'; this.emit();
       } else if (m.type === 'ready') {
         clearTimeout(this.watchdog);
+        this.model=m.model||{id:'malecns-v1.0-retained',neurons:166700};this.compute=m.compute||m.backend;this.projectionSize=m.projectionSize||166700;
         this.backend = m.backend; this.ready = true; this.phase = 'ready';
         this.emit(); this.request();
       } else if (m.type === 'reset') {
@@ -50,10 +51,12 @@ export class Simulation {
       } else if (m.type === 'result') {
         if (m.generation !== this.generation || this.resetting) return;
         if (!this.pending) return;
-        try { validateResult(m,this.tick); } catch(error) { this.fail(error.message);return; }
+        try { validateResult(m,this.tick,this.projectionSize); } catch(error) { this.fail(error.message);return; }
         clearTimeout(this.watchdog); this.pending = false;
         if (this.paused) { this.deferred = m; return; }
         this.applyResult(m);
+      } else if(m.type==='connections') {
+        if(m.generation===this.generation)this.onConnections(m);
       } else if (m.type === 'error') {
         if (m.generation !== undefined && m.generation !== this.generation) return;
         if (this.backend === 'gpu' && backend !== 'cpu') this.start('cpu');
@@ -82,9 +85,10 @@ export class Simulation {
     this.arm(60000);
   }
   pulse(indices, strength, profile = 'paint', replace = false) {
-    if (!this.ready || this.resetting || !indices.length) return false;
+    if (this.world.options.mode==='sensory' || !this.ready || this.resetting || !indices.length) return false;
     this.worker.postMessage({type:'pulse',indices,strength,profile,replace}); this.request(); return true;
   }
+  inspect(bodyId){if(this.ready&&!this.resetting)this.worker.postMessage({type:'inspect',bodyId,generation:this.generation});}
   clear() { if (this.ready) this.worker.postMessage({type:'clear'}); }
   togglePause() {
     if (!this.ready || this.resetting) return;
@@ -106,10 +110,10 @@ export class Simulation {
     this.speed = 0; this.lastResult = 0;
     this.emit(); this.worker.postMessage({type:'reset',generation:this.generation}); this.arm(60000);
   }
-  fail(detail) {
+  fail(detail, phase = 'error') {
     this.worker?.terminate(); this.worker = null; clearTimeout(this.timer); clearTimeout(this.watchdog);
     this.epoch++; this.ready = false; this.pending = false; this.resetting = false;
-    this.deferred=null; this.phase = 'error'; this.detail = detail; this.emit();
+    this.deferred=null; this.phase = phase; this.detail = detail; this.emit();
   }
   dispose() {
     this.epoch++; this.worker?.terminate(); clearTimeout(this.timer); clearTimeout(this.watchdog);

@@ -4,9 +4,7 @@
 
 The same Node.js service runs on Windows, macOS, Linux, or a cloud VM. The station
 connects through the [WebSocket API](api.md). Docker and a public domain are optional.
-The current backend is a single CPU simulation worker per session. It does not use
-CUDA or the PC's GPU, and extra CPU cores do not accelerate one session. A future
-GPU backend can keep the same API and numerical contract.
+The service supports a CPU reference and optional PyTorch CUDA, with retained and full models on the same API. See [Windows CUDA setup and acceptance](cuda-windows.md). CPU sessions remain single-worker simulations. CUDA hardware execution has not been verified on the development machine.
 
 ## Model scope and resources
 

@@ -12,7 +12,7 @@ const results = [];
 function run(name, seconds, options = {}, configure = () => {}, silenced = false) {
   brain.reset();
   // Preserve the original no-odor baseline; foraging-loop.mjs tests the new aid.
-  const world = new Habitat({odor: false, ...options}), body = new FlyController();
+  const world = new Habitat({mode: 'assisted', odor: false, ...options}), body = new FlyController();
   world.reset(body); configure(world, body);
   const start = performance.now();
   let peakSpikes = 0, maxFeed = 0, peakMN9 = 0, lastFeedDistance = null;

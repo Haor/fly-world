@@ -1,5 +1,7 @@
+import { attachAnatomy, fetchSkeleton } from './anatomy.js';
+import { fullLayout } from './neuron-layout.js';
 import { requestBytes } from './data-loader.js';
-/** Soma coordinates projected into canvas space for rendering and hit tests. */
+/** Anatomical positions projected into canvas space for rendering and hit tests. */
 export class BrainView {
   constructor(canvas, onPulse, onSelection) {
     this.canvas = canvas;
@@ -20,7 +22,7 @@ export class BrainView {
     this.mode = 'paint';
     this.pulseProfile = 'paint';
     this.replacePulse = false;
-    this.projection = 'brain';
+    this.projection = 'all';
     this.tick = 0;
     this.lastTickAt = performance.now();
     this.hover = null;
@@ -39,7 +41,8 @@ export class BrainView {
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
     this.down = (e) => {
-      if (!this.enabled || !this.neurons.length || e.button !== 0) return;
+      if (!this.neurons.length || e.button !== 0) return;
+      if(!this.enabled){this.inspectAt(this.local(e));return;}
       e.preventDefault();
       canvas.focus();
       canvas.setPointerCapture(e.pointerId);
@@ -79,10 +82,12 @@ export class BrainView {
     const json = await new Response(
       new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')),
     ).text();
-    this.neurons = JSON.parse(json);
-    this.resize();
+    const anatomyBytes=await requestBytes('./data/anatomy.json.gz');
+    this.anatomy=JSON.parse(await new Response(new Blob([anatomyBytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    this.setNeurons(JSON.parse(json));
     return this.neurons;
   }
+  setNeurons(neurons) {this.neurons=attachAnatomy(neurons,this.anatomy);this.positionedCount=this.neurons.filter(row=>row[6]).length;this.clear();this.reset();this.resize();}
   resize() {
     const rect = this.canvas.getBoundingClientRect();
     this.w = Math.max(1, rect.width);
@@ -110,6 +115,7 @@ export class BrainView {
     const scale = Math.min(Math.max(1, this.w - 36) / spanX, Math.max(1, this.h - 36) / spanY);
     const sine = Math.sin(angle),
       cosine = Math.cos(angle);
+    this.projectAnatomy=p=>({x:this.w/2+(-p[0]-centerX)*scale,y:this.h/2+(p[1]*sine+p[2]*cosine-centerY)*scale});
     this.points = [];
     this.byIndex = new Map();
     this.grid = new Map();
@@ -126,16 +132,48 @@ export class BrainView {
       if (!this.grid.has(k)) this.grid.set(k, []);
       this.grid.get(k).push(v);
     });
+    if(this.projection==='all') {
+      const layout=fullLayout(this.neurons,this.w,this.h);this.points=layout.points;this.unlocated=layout.unlocated;this.projectAnatomy=layout.project;
+      this.byIndex=new Map(this.points.map(p=>[p.i,p]));this.grid=new Map();
+      for(const p of this.points){const key=`${Math.floor(p.x/this.cell)},${Math.floor(p.y/this.cell)}`;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(p);}
+    }
     this.bc.clearRect(0, 0, this.w, this.h);
     this.bc.fillStyle = '#add5f1';
     this.bc.globalAlpha = 0.72;
-    this.bc.beginPath();
-    for (const p of this.points) {
-      this.bc.moveTo(p.x + 0.65, p.y);
-      this.bc.arc(p.x, p.y, 0.65, 0, Math.PI * 2);
+    // Keep raster paths bounded for the full graph.
+    for(let start=0;start<this.points.length;start+=2048) {
+      this.bc.beginPath();
+      for(const p of this.points.slice(start,start+2048)) {
+        this.bc.moveTo(p.x+.65,p.y);this.bc.arc(p.x,p.y,.65,0,Math.PI*2);
+      }
+      this.bc.fill();
     }
-    this.bc.fill();
+    this.canvas.dataset.graphNodes=String(this.neurons.length);
+    this.canvas.dataset.renderedNodes=String(this.points.length);
+    this.canvas.dataset.unlocatedNodes=String(this.projection==='all'?this.unlocated:0);
     this.bc.globalAlpha = 1;
+    if(this.projection==='all' && this.unlocated){this.bc.fillStyle='#acb4a5';this.bc.font='10px sans-serif';this.bc.fillText(`空间数据待补 · ${this.unlocated.toLocaleString()}`,8,16);}
+  }
+  async inspectAt(point) {
+    let nearest=null,distance=64;
+    for(const p of this.points){const d=(p.x-point.x)**2+(p.y-point.y)**2;if(d<distance){distance=d;nearest=p;}}
+    if(!nearest)return;
+    const row=this.neurons[nearest.i],label=document.getElementById('anatomy-detail');
+    this.skeletonAbort?.abort();this.skeletonAbort=new AbortController();const control=this.skeletonAbort;
+    this.inspectedId=String(row[0]);this.connectionLines=[];this.onInspect?.(this.inspectedId);
+    this.skeleton=null;label.textContent=`${row[1]||'未分类'} · ${row[0]} · 正在读取官方骨架…`;
+    try {
+      const skeleton=await fetchSkeleton(row[0],{signal:control.signal});if(control.signal.aborted)return;
+      this.skeleton=skeleton;label.textContent=`${row[1]||'未分类'} · ${row[0]} · ${skeleton.vertices.toLocaleString()} 个骨架点 · ${row[7]?.positionSource==='soma'?'胞体定位':'骨架定位'}`;
+    } catch(error){if(!control.signal.aborted)label.textContent=error.message;}
+  }
+  setConnections(result) {
+    if(result.bodyId!==this.inspectedId)return;
+    const byId=new Map(this.neurons.map((row,i)=>[String(row[0]),i]));
+    this.connectionTarget=byId.get(result.bodyId);
+    this.connectionLines=result.items.map(item=>({i:byId.get(item.bodyId),weight:item.weight}));
+    const label=document.getElementById('connection-detail');
+    if(label)label.textContent=`上游连接 ${result.total.toLocaleString()} 条 · 显示最强 ${result.items.length} 条`;
   }
   tooltip() {
     const tip = document.getElementById('neuron-tooltip');
@@ -259,6 +297,15 @@ export class BrainView {
     const c = this.ctx;
     c.clearRect(0, 0, this.w, this.h);
     c.drawImage(this.base, 0, 0, this.w, this.h);
+    const target=this.byIndex.get(this.connectionTarget);
+    if(target && this.connectionLines?.length) {
+      c.strokeStyle='#8aa78588';c.lineWidth=.7;c.beginPath();
+      for(const line of this.connectionLines){const p=this.byIndex.get(line.i);if(p){c.moveTo(p.x,p.y);c.lineTo(target.x,target.y);}}c.stroke();
+    }
+    if(this.skeleton && this.projectAnatomy) {
+      c.strokeStyle='#f1bd79';c.lineWidth=1;c.beginPath();
+      for(const [a,b] of this.skeleton.segments){const p=this.projectAnatomy(a),q=this.projectAnatomy(b);c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);}c.stroke();
+    }
     const age = (now - (this.pulseAt ?? -10000)) / 1000,
       pulse =
         (this.pulseProfile === 'turn'
@@ -298,11 +345,12 @@ export class BrainView {
   }
   reset() {
     this.fc.clearRect(0, 0, this.w, this.h);
-    this.tick = 0;
+    this.tick = 0;this.skeleton=null;this.connectionLines=[];this.inspectedId=null;this.skeletonAbort?.abort();
+    for(const id of ['anatomy-detail','connection-detail']){const label=document.getElementById(id);if(label)label.textContent='';}
     this.clear();
   }
   dispose() {
-    this.disposed = true;
+    this.disposed = true;this.skeletonAbort?.abort();
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();
     for (const [type, fn] of [

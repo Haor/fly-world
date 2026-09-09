@@ -41,7 +41,7 @@ test('aid uses local sensory differences, casts on odor loss, and respects needs
 });
 
 test('odor and aid switches are independent; silent readouts cannot move or feed', () => {
-  const world=new Habitat(), body=new FlyController(); world.reset(body);
+  const world=new Habitat({mode: 'assisted'}), body=new FlyController(); world.reset(body);
   world.options.foraging=false; assert(world.sense(body).odorLeft>0);
   assert.equal(world.signals.forageState,'inactive');
   world.options.foraging=true; world.options.odor=false;

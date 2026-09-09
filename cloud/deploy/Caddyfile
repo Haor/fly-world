@@ -1,5 +1,5 @@
 {$NEURAL_DOMAIN} {
-    @neural path /neural /healthz /v1/model
+    @neural path /neural /healthz /v1/model /v1/models
     reverse_proxy @neural neural:9000
     respond 404
 }
