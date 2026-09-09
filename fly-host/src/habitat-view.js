@@ -47,8 +47,13 @@ export class HabitatView {
     }
     if(this.showOdor){
       for(let u=.25;u<5.4;u+=.35)for(let v=.25;v<5.4;v+=.35){
-        const hz=odorRateAt(tileToMM(u),tileToMM(v));
-        if(hz>1){c.globalAlpha=hz/25*.65;diamond(120+(u-v)*16,83+(u+v)*8,4,'#bbe0c6');}
+        const x=tileToMM(u),z=tileToMM(v),o=s.options;
+        let hz=s.physical?odorRateAt(x,z,{x:o.odorX,z:o.odorZ})*o.odorStrength:odorRateAt(x,z);
+        if(s.physical&&o.windSpeed>0){
+          const angle=o.windAngle*Math.PI/180,dx=x-o.odorX,dz=z-o.odorZ,along=dx*Math.sin(angle)+dz*Math.cos(angle),cross=dx*Math.cos(angle)-dz*Math.sin(angle);
+          hz*=Math.exp(-cross*cross/(2*(1+Math.max(0,along)*.15)**2))*(along>=0?1:Math.exp(along/2));
+        }
+        if(hz>1){c.globalAlpha=Math.min(1,hz/25*.65);diamond(120+(u-v)*16,83+(u+v)*8,4,'#bbe0c6');}
       }
       c.globalAlpha=1;
     }

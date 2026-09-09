@@ -1,3 +1,5 @@
+See [physical world execution](../cloud/docs/physical-world.md) for separate local lightweight, local full and remote full modes.
+
 [简体中文](README.zh_CN.md)
 
 # Fly World observation station
@@ -20,25 +22,16 @@ The station can run without a USB device.
 - Read recent neural output curves and behavior events. CSV export contains the
   last 12 neural seconds of samples and up to 80 events, not a full-session archive.
 - Use the perception switches to enable or disable individual sensory encoders.
-- The advanced controls provide direct neural pulses, a zero-input reset,
-  synaptic-transmission control, and backend selection.
+- The advanced controls provide environment occlusion, a zero-input reset,
+  and synaptic-transmission control. The three execution modes have a separate panel.
 - The device panel shows connection and display state. If another page owns the
   USB lease, the takeover button explicitly transfers control to this station.
 
-## Model boundaries
+## Model limits
 
-The static odor field is `25 * exp(-distance_mm / 7)`. Two antennae sample it
-separately; a simplified adaptation stage supplies left/right ORN_DM1 rates.
-Odor input is enabled by default. The navigation aid requires Assisted experiment mode and has a separate switch. The aid uses local concentration differences and recent changes to
-drive LC9 and DNa02. It does not read the food position or move the body directly.
-This is an engineered strategy, not demonstrated emergent neural navigation.
-Wind is absent. The field overlay shows pre-adaptation values and is display-only.
-See [foraging](docs/foraging.md) for parameters and validation boundaries.
+Full modes run sensory sampling, neural computation and MuJoCo physics on the same compute machine. The browser displays server poses without a gait policy, takeoff impulse or altitude target. Sensory transduction and muscle gains remain approximate and uncalibrated. Coordinated walking and flight are not biologically validated.
 
-The LC9 exploration drive, DNa02 turn bias, hunger, energy, sensory encoders,
-and body decoder are authored assumptions. The connectome alone does not
-provide a complete behaving fly. The model dialog distinguishes these layers.
-The three-dimensional body is a female NeuroMechFly specimen.
+The lightweight browser mode retains an approximate body and optional background input. It is not the physical validation path. Earlier assisted-foraging code remains for compatibility tests and is not enabled by the current sensory interface. See [physical world execution](../cloud/docs/physical-world.md) and the [scientific limits](docs/physical-loop.zh_CN.md).
 
 ## Implementation
 
@@ -63,7 +56,7 @@ Implementation evidence: [neural validation](docs/neural-validation.md). Remote 
 
 ## Model and sensory modes
 
-Sensory-only is now the default: no authored walk, turn, or foraging drive. The environment supplies bilateral odor, contact taste, and bilateral early-visual input. Light level, direction, and brief occlusion affect input. L1/L2 vision remains a proxy, not a reconstructed retina. The previous motor drives require Assisted experiment mode.
+Sensory-only is now the default: no authored walk, turn, or foraging drive. The environment supplies bilateral odor, contact taste, and bilateral early-visual input. Light level, direction, and brief occlusion affect input. L1/L2 vision remains a proxy, not a reconstructed retina. Earlier motor-drive helpers remain for compatibility tests; the current interface does not enable them.
 
 Choose the retained or full model; the diagram uses every selected model ID. Positions come from official soma annotations and SWC skeleton representative positions, never a fabricated grid. Click a node to load its complete SWC branches and strongest 32 incoming connections. Edges come from the selected inference graph; skeletons come from official public data. See [anatomy](docs/anatomy.md) and [Windows CUDA](../cloud/docs/cuda-windows.md).
 

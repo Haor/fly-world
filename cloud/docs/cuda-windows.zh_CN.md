@@ -1,3 +1,5 @@
+> 观测站的本机全量和远程全量现使用[物理闭环接口与配置](physical-world.zh_CN.md)。下文逐步神经 API 和旧界面操作保留用于兼容测试；完整物理闭环还需要 MuJoCo 与身体资产。
+
 [English](cuda-windows.md)
 
 # Windows：模型选择与 CUDA
@@ -11,6 +13,8 @@
 ```powershell
 npm ci --prefix cloud
 cloud/.venv/Scripts/python.exe -m pip install -r cloud/requirements-torch.txt --index-url https://download.pytorch.org/whl/cu130
+cloud/.venv/Scripts/python.exe -m pip install -r cloud/requirements-physics.txt
+cloud/.venv/Scripts/python.exe cloud/tools/prepare-body.py
 cloud/.venv/Scripts/python.exe -c "import torch; print(torch.__version__, torch.version.cuda); assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"
 & ./cloud/tools/start-service.ps1 -CudaPython ./cloud/.venv/Scripts/python.exe
 ```
@@ -38,11 +42,11 @@ node cloud/src/server.js
 ## 页面操作
 
 1. 重新构建观测站：`npm ci --prefix fly-host`，然后 `npm run build --prefix fly-host`。
-2. 在“环境控制”的“神经模型”中选择轻量或全量。
-3. 全量自动切到推理服务。在“实验工具”选择“CUDA · NVIDIA GPU”，填写 `ws://127.0.0.1:9000/neural` 和令牌，连接。
-4. 页面显示实际节点数、CPU/CUDA 后端以及空间定位数量。神经图使用所选模型全部元数据，不再把全量活动裁到轻量 ID 集合。
+2. 本机浏览器轻量计算选择「本机轻量」，不填服务地址。
+3. 本机 NVIDIA PC 选择「本机全量」，填写 `ws://127.0.0.1:9000/neural` 和本机令牌。
+4. 另一台服务器计算选择「远程全量」，填写 WSS 或 SSH 隧道地址和服务器令牌。
 
-切换模型或计算后端会结束旧会话。切换输入方式也需要重启神经状态；服务连接需重新填写令牌。令牌不存储在浏览器。
+切换运行方式结束旧会话。两种服务模式都在计算机器上运行神经和物理闭环。页面显示实际节点数、后端及空间定位数量。令牌不存储在浏览器。完整闭环验收使用 `cloud/tools/check-world.js`；下述旧工具只验证神经计算接口。
 
 ## CUDA 验收
 

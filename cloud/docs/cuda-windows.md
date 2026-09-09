@@ -1,3 +1,5 @@
+> The station now uses [physical world execution](physical-world.md) for local and remote full modes. The step API and earlier UI instructions below remain for compatibility tests. The physical loop also requires MuJoCo and body assets.
+
 [简体中文](cuda-windows.zh_CN.md)
 
 # Windows model selection and CUDA
@@ -14,6 +16,8 @@ selector](https://pytorch.org/get-started/locally/). A CPU wheel cannot use CUDA
 ```powershell
 npm ci --prefix cloud
 cloud/.venv/Scripts/python.exe -m pip install -r cloud/requirements-torch.txt --index-url https://download.pytorch.org/whl/cu130
+cloud/.venv/Scripts/python.exe -m pip install -r cloud/requirements-physics.txt
+cloud/.venv/Scripts/python.exe cloud/tools/prepare-body.py
 cloud/.venv/Scripts/python.exe -c "import torch; print(torch.__version__, torch.version.cuda); assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))"
 & ./cloud/tools/start-service.ps1 -CudaPython ./cloud/.venv/Scripts/python.exe
 ```
@@ -42,16 +46,11 @@ full graph from `MODEL_DIR`. `RETAINED_DIR` overrides the retained path.
 ## Station controls
 
 1. Rebuild with `npm ci --prefix fly-host` and `npm run build --prefix fly-host`.
-2. Choose retained or full in the environment panel's model selector.
-3. Full selects service inference. Choose CUDA in the experiment tools, enter
-   `ws://127.0.0.1:9000/neural` and the token, then connect.
-4. Check actual model count, CPU/CUDA backend, and spatial coverage. The diagram
-   uses the selected model's metadata; full results are no longer reduced to the
-   retained set of IDs.
+2. Choose Local lightweight for browser computation without a service.
+3. Choose Local full for a local NVIDIA PC. Enter `ws://127.0.0.1:9000/neural` and the local token.
+4. Choose Remote full for another compute machine. Enter its WSS or SSH tunnel address and token.
 
-Changing model or compute backend ends the old session. Changing input mode also
-requires a neural restart and token re-entry for service connections. The token is
-not stored by the browser.
+A mode change ends the previous session. Both full modes run neural and physical computation on the selected compute machine. The token is not stored in the browser. Use `cloud/tools/check-world.js` to validate the complete loop. The checks below test the legacy neural interface only.
 
 ## CUDA acceptance
 

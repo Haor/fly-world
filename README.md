@@ -1,3 +1,5 @@
+Choose local lightweight WebGPU, local full CUDA, or remote full execution. Full modes run neural and MuJoCo physics on the compute machine. See the [setup and API guide](cloud/docs/physical-world.md) and [physical validation limits](fly-host/docs/physical-loop.zh_CN.md).
+
 [简体中文](README.zh_CN.md)
 
 # Fly World

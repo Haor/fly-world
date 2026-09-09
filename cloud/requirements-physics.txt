@@ -1,0 +1,2 @@
+# Optional physical body; install in the same isolated environment as CUDA PyTorch.
+mujoco==3.3.7

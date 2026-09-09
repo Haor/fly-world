@@ -6,12 +6,14 @@ import { sensoryPopulations } from '../../fly-host/src/habitat.js';
 import { fileURLToPath } from 'node:url';
 /** JSON-lines bridge; a failed CUDA request never falls back to CPU. */
 export class PythonSession extends EventEmitter {
-  constructor({python,directory,format,seed,neurons,device='cuda',profile='reference',indexedSpikes=false}) {
+  constructor({python,directory,format,seed,neurons,device='cuda',profile='reference',indexedSpikes=false,execution='neural',worldOptions={},bodyDirectory=null}) {
     super();this.stopping=false;this.buffer='';
-    this.child=spawn(python,['-u',fileURLToPath(new URL('../python/session.py',import.meta.url)),
-      '--model',directory,'--format',format,'--seed',String(seed),'--device',device,'--profile',profile],{stdio:['pipe','pipe','pipe']});
+    const script=execution==='world'?'../python/world_session.py':'../python/session.py';
+    const extra=execution==='world'?['--body',bodyDirectory||fileURLToPath(new URL('../assets/flybody',import.meta.url)),'--annotations',fileURLToPath(new URL('../../fly-host/public/data/sensorimotor.json.gz',import.meta.url))]:[];
+    this.child=spawn(python,['-u',fileURLToPath(new URL(script,import.meta.url)),
+      '--model',directory,'--format',format,'--seed',String(seed),'--device',device,'--profile',profile,...extra],{stdio:['pipe','pipe','pipe']});
     // Child diagnostics contain no token. Report structured public codes upstream.
-    this.child.stderr.on('data',()=>{});
+    this.child.stderr.on('data',chunk=>{if(process.env.NEURAL_DEBUG==='1')process.stderr.write(chunk);});
     this.child.stdout.on('data',chunk=>{
       this.buffer+=chunk.toString();
       if(this.buffer.length>32*1024*1024){this.emit('error',Error('CUDA frame too large'));this.terminate();return;}
@@ -23,7 +25,7 @@ export class PythonSession extends EventEmitter {
     });
     const groups=populations(neurons);
     const mask=backgroundMask(neurons);
-    this.postMessage({type:'configure',indexedSpikes,backgroundIndices:Array.from({length:neurons.length},(_,i)=>i).filter(i=>mask[i]),backgroundParameters:BACKGROUND,sensory:sensoryPopulations(neurons),readout:CHANNELS.map(key=>groups[key]),envelopes:PULSE_ENVELOPES});
+    this.postMessage({type:'configure',indexedSpikes,worldOptions,backgroundIndices:Array.from({length:neurons.length},(_,i)=>i).filter(i=>mask[i]),backgroundParameters:BACKGROUND,sensory:sensoryPopulations(neurons),readout:CHANNELS.map(key=>groups[key]),envelopes:PULSE_ENVELOPES});
     this.child.on('error',error=>this.emit('error',error));
     this.child.stdin.on('error',error=>{if(!this.stopping)this.emit('error',error);});
     this.child.on('exit',code=>this.emit('exit',code));

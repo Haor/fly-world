@@ -88,3 +88,13 @@ test('changing the start resets neural history and preserves pause and sensory s
     assert.equal(sim.body.time,0);assert.equal(sim.world.speed,0);
   } finally {sim.dispose();}
 });
+
+test('stream gaps retain authoritative spike totals and are present in exports',()=>{
+ const o=new Observations(),pose={time:.1,x:0,z:0,behavior:'At rest',physical:true,contacts:3,actuation:.2},rates=Array(7).fill(0);
+ o.ingest(pose,rates,{odor:0},4,{tick:1000,fromTick:0,cumulativeSpikes:4});
+ o.ingest({...pose,time:.3},rates,{odor:0},2,{tick:3000,fromTick:2000,cumulativeSpikes:19});
+ assert.equal(o.spikes,19);assert.equal(o.unobservedSteps,1000);
+ assert(o.events.some(e=>e.label.includes('0.100')));
+ const rows=o.export().split('\n').map(r=>r.split(','));assert(rows.every(r=>r.length===22));
+ assert.equal(o.samples.at(-1).unobservedSeconds,.1);
+});

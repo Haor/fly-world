@@ -1,10 +1,12 @@
+> 观测站的本机全量和远程全量现使用[物理闭环接口与配置](physical-world.zh_CN.md)。下文逐步神经 API 和旧界面操作保留用于兼容测试；完整物理闭环还需要 MuJoCo 与身体资产。
+
 [English](deployment.md)
 
 # 在本地 PC 或远程服务器运行推理服务
 
 同一套 Node.js 服务可运行在 Windows、macOS、Linux 或云主机上，观测站通过统一的 [WebSocket API](api.zh_CN.md) 连接。Docker 和公网域名都是可选项。
 
-服务支持 CPU 参考实现和可选 PyTorch CUDA 后端，轻量与全量模型共用 API。Windows NVIDIA 安装与验收见 [CUDA 指南](cuda-windows.zh_CN.md)。CPU 会话仍是单个仿真线程；CUDA 尚未在开发机上做硬件验收。
+服务支持 CPU 参考实现和可选 PyTorch CUDA 后端，轻量与全量模型共用 API。Windows NVIDIA 安装与验收见 [CUDA 指南](cuda-windows.zh_CN.md)。CPU 会话仍是单个仿真线程；CUDA 神经及物理闭环已在 Linux RTX 4090 D 上测试，原生 Windows 仍需目标机器验收。
 
 ## 数据范围与资源
 
@@ -58,7 +60,7 @@ npm run build --prefix fly-host
 py -3.13 -m http.server 8768 --bind 127.0.0.1 --directory fly-host/dist
 ```
 
-打开 `http://127.0.0.1:8768`，在“实验工具”中选择“推理服务 · 本地 / 远程”，地址填 `ws://127.0.0.1:9000/neural`，令牌从本机文件复制。静态服务器用于纯电脑观察，不提供 USB 桥接 API；设备面板提示不可用时，神经仿真仍可运行。
+打开 `http://127.0.0.1:8768`。当前观测站的服务模式要求 CUDA 与物理依赖，请完成[物理闭环准备](physical-world.zh_CN.md)，再选择「本机全量」或「远程全量」。本机地址为 `ws://127.0.0.1:9000/neural`，令牌从本机文件复制。静态服务器用于纯电脑观察，不提供 USB 桥接 API；设备面板提示不可用时，神经仿真仍可运行。
 
 ## Linux / macOS：直接运行
 

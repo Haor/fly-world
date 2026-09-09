@@ -74,7 +74,7 @@ export class Habitat {
     if (turning && this.options.mode !== 'sensory') s[word & 1 ? 'left' : 'right'] = 65 * gain;
     if (this.options.taste && eatingContact) s.sugar = 100;
     if (this.options.odor) {
-      const odor = this.olfaction.sample(antennaSamples(pose, (x,z)=>odorRateAt(x,z,FOOD,pose.y)), t);
+      const odor = this.olfaction.sample(antennaSamples(pose, (x,z)=>odorRateAt(x,z,{x:this.options.odorX??FOOD.x,z:this.options.odorZ??FOOD.z},pose.y)*(this.options.odorStrength??1)), t);
       Object.assign(s, {odorLeft: odor.odorLeft, odorRight: odor.odorRight,
         rawLeft: odor.rawLeft, rawRight: odor.rawRight, odorTrend: odor.trend,
         odor: (odor.odorLeft + odor.odorRight) / 2});
@@ -141,6 +141,7 @@ export class Habitat {
     return controller.pose();
   }
   snapshot() {
+    if(this.remoteSnapshot)return this.remoteSnapshot;
     return { ...this.signals, mode:this.options.mode, light:this.options.light,lightAngle:this.options.lightAngle,
       occlusion: this.options.mode==='sensory'&&this.time<this.loomUntil ? .85*Math.sin(Math.PI*(.65-this.loomUntil+this.time)/.65) : 0, time: this.time, hunger: this.hunger, energy: this.energy,
       feeding: this.feeding, feedSeconds: this.feedSeconds, loomingStimulus: this.options.enabled && this.options.vision && this.time < this.loomUntil };

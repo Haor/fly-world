@@ -21,3 +21,5 @@
 
 No third-party endorsement is implied. Dataset attribution and component licenses
 continue to apply when redistributing prepared models or firmware derivatives.
+
+- **flybody physical assets**: TuragaLab / HHMI Janelia and contributors, Apache-2.0. The optional downloader selects commit `d015e9bfe441bd90ae431bac24c55cb74bdbce26` from https://github.com/TuragaLab/flybody and retains its LICENSE. No trained locomotion policy is included.

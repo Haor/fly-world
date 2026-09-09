@@ -44,3 +44,15 @@
   .world-column,.inspector{min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
   .inspector{scrollbar-gutter:stable}
 }
+.run-modes { display:grid; gap:8px; margin:14px 0; }
+.run-modes button { width:100%; padding:12px 14px; text-align:left; border:1px solid #3b4b40; background:#102018; color:var(--text,#e3e7dd); }
+.run-modes button[aria-checked="true"] { border-color:#d8ee82; background:#263524; box-shadow:inset 3px 0 #d8ee82; }
+.run-modes strong { display:flex; justify-content:space-between; gap:12px; font-size:14px; }
+.run-modes strong span { font-size:11px; color:#c3d18e; font-weight:500; }
+.run-modes small { display:block; margin-top:6px; color:#a7b4a8; font-size:11px; line-height:1.5; }
+.connection-settings { padding:12px 0 8px; border-top:1px solid #3b4b40; }
+.connection-settings input { width:100%; min-width:0; color:var(--text); background:var(--deep); border:1px solid var(--line); padding:9px 10px; border-radius:var(--radius); margin-top:6px; }
+.connection-settings label { display:block; margin:12px 0; }
+.connection-settings button { width:100%; margin:4px 0 10px; }
+#connection-error { color:var(--error); font-size:11px; }
+#connection-error { color:#efb69e; font-size:12px; }

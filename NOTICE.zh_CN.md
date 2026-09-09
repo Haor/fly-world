@@ -11,3 +11,5 @@
 - **ws**：MIT，版本和完整性信息固定在 `cloud/package-lock.json`。
 
 本项目不暗示第三方背书。分发准备好的模型或固件衍生物时，数据署名和组件许可仍然适用。
+
+- **flybody 物理资产**：TuragaLab / HHMI Janelia 及贡献者，Apache-2.0。可选下载器固定 https://github.com/TuragaLab/flybody 提交 `d015e9bfe441bd90ae431bac24c55cb74bdbce26`，保留 LICENSE；未包含训练得到的运动策略。

@@ -1,3 +1,4 @@
+import {PhysicalBodyView} from './body/physical.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { parseBinarySTL, transformVertices } from './body/stl.js';
@@ -300,10 +301,11 @@ export class FlyScene {
     this.onCameraChange?.(view);
   }
   setEnvironmentLight(world) {
-    if(world.mode!=='sensory'){this.key.intensity=4.2;this.key.position.set(2,-4,7);return;}
+    if(world.mode!=='sensory'){this.environmentLightAngle=null;this.key.intensity=4.2;this.key.position.set(2,-4,7);return;}
     const angle=(world.lightAngle||0)*Math.PI/180;
+    this.environmentLightAngle=angle;
     this.key.intensity=4.2*(world.light??1)*(1-(world.occlusion||0));
-    this.key.position.set(5*Math.sin(angle),-5*Math.cos(angle),7);
+    this.key.position.set(5*Math.cos(angle),5*Math.sin(angle),7);
   }
   setShadows(enabled) {
     if (this.renderer.shadowMap.enabled === enabled) return;
@@ -339,6 +341,9 @@ export class FlyScene {
     this.fitScale = fit;
     this.controls.update();
   }
+  setPhysicalDefinition(definition) {
+    this.physicalView?.dispose();this.physicalView=definition?new PhysicalBodyView(this.scene,definition):null;this.fly.visible=!definition;
+  }
   update(pose) {
     const now = performance.now();
     this.previous = { ...this.pose };
@@ -369,9 +374,11 @@ export class FlyScene {
       .add(this.controls.target);
     this.pullback = pullback;
     this.pose = { ...p };
+    this.fly.visible=!p.physical;
+    if(this.physicalView){this.physicalView.group.visible=!!p.physical;if(p.physical)this.physicalView.update(this.previous.rigid,p.rigid,p.renderFraction??1);}
     this.fly.position.set(p.z, p.x, p.y);
     this.fly.rotation.set(p.bank || 0, p.pitch || 0, p.yaw, 'ZYX');
-    if (this.gait && this.lastGaitTime !== p.time) {
+    if (!p.physical && this.gait && this.lastGaitTime !== p.time) {
       this.lastGaitTime = p.time;
       const transforms = this.gait.update(p);
       for (const { name, mesh } of this.meshes) {
@@ -381,7 +388,7 @@ export class FlyScene {
     }
     // Wing exposures use interpolated neural time, so pause freezes them.
     // Only wing transforms are repeated; the six-leg IK is solved once per pose.
-    if (this.gait) {
+    if (!p.physical && this.gait) {
       const blur = clamp(((p.wingOpen || 0) - 0.7) / 0.3, 0, 1);
       for (const phaseOffset of [(-Math.PI * 2) / 3, (Math.PI * 2) / 3]) {
         const echoes = this.wingEchoes.filter((e) => e.phaseOffset === phaseOffset);
@@ -399,7 +406,8 @@ export class FlyScene {
     this.floor.position.x = p.z;
     this.floor.position.y = p.x;
     this.texture.offset.set(p.z / 2, p.x / 2);
-    this.key.position.set(p.z + 2, p.x - 4, 7);
+    const angle=this.environmentLightAngle;
+    this.key.position.set(p.z+(angle==null?2:5*Math.cos(angle)),p.x+(angle==null?-4:5*Math.sin(angle)),7);
     this.key.target.position.set(p.z, p.x, 0);
   }
   render(now) {
@@ -410,6 +418,7 @@ export class FlyScene {
       p = {};
     for (const key of POSE_FIELDS)
       p[key] = this.previous[key] + (this.next[key] - this.previous[key]) * t;
+    p.physical=this.next.physical;p.rigid=this.next.rigid;p.renderFraction=t;
     this.applyPose(p);
     if (Math.hypot(p.x - (this.lastPathX ?? 0), p.z - (this.lastPathZ ?? 0)) > 0.08) {
       this.lastPathX = p.x;
@@ -439,7 +448,7 @@ export class FlyScene {
     if (this.depthOfField) {
       this.fly.updateMatrixWorld(true);
       this.camera.updateMatrixWorld();
-      if (this.focusMesh)
+      if (this.focusMesh&&!p.physical)
         this.focusPoint
           .copy(this.focusMesh.geometry.boundingSphere.center)
           .applyMatrix4(this.focusMesh.matrixWorld);
@@ -463,7 +472,7 @@ export class FlyScene {
     this.arrival = performance.now();
   }
   dispose() {
-    this.disposed = true;
+    this.disposed = true;this.physicalView?.dispose();
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();
     this.controls.removeEventListener('start', this.orbitStart);

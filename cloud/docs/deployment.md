@@ -1,10 +1,12 @@
+> The station now uses [physical world execution](physical-world.md) for local and remote full modes. The step API and earlier UI instructions below remain for compatibility tests. The physical loop also requires MuJoCo and body assets.
+
 [简体中文](deployment.zh_CN.md)
 
 # Run the neural service locally or remotely
 
 The same Node.js service runs on Windows, macOS, Linux, or a cloud VM. The station
 connects through the [WebSocket API](api.md). Docker and a public domain are optional.
-The service supports a CPU reference and optional PyTorch CUDA, with retained and full models on the same API. See [Windows CUDA setup and acceptance](cuda-windows.md). CPU sessions remain single-worker simulations. CUDA hardware execution has not been verified on the development machine.
+The service supports a CPU reference and optional PyTorch CUDA, with retained and full models on the same API. See [Windows CUDA setup and acceptance](cuda-windows.md). CPU sessions remain single-worker simulations. CUDA execution has been tested on a Linux RTX 4090 D. Native Windows GPU acceptance remains a target-machine check.
 
 ## Model scope and resources
 
@@ -66,8 +68,9 @@ npm run build --prefix fly-host
 py -3.13 -m http.server 8768 --bind 127.0.0.1 --directory fly-host/dist
 ```
 
-Open `http://127.0.0.1:8768`. In the experiment tools select the inference service,
-enter `ws://127.0.0.1:9000/neural`, and paste the token from your local file. This
+Open `http://127.0.0.1:8768`. Complete the CUDA and body setup in the
+[physical world guide](physical-world.md), then select Local full or Remote full.
+For a local service, enter `ws://127.0.0.1:9000/neural` and its token. This
 static server supports PC-only observation; it does not provide the USB bridge API.
 With no USB bridge, the device panel reports unavailable while simulation still works.
 

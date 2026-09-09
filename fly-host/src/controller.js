@@ -25,7 +25,7 @@ export class FlyController {
     this.reset();
   }
   reset() {
-    Object.assign(this, restPose());
+    this.remotePose=null;Object.assign(this, restPose());
     this.rates = new Float64Array(7);
     this.vy = 0;
     this.distance = 0;
@@ -148,6 +148,7 @@ export class FlyController {
     return this.pose();
   }
   pose() {
+    if(this.remotePose)return this.remotePose;
     return {
       x: this.x,
       z: this.z,

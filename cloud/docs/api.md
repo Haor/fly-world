@@ -1,3 +1,5 @@
+> The station now uses [physical world execution](physical-world.md) for local and remote full modes. The step API and earlier UI instructions below remain for compatibility tests. The physical loop also requires MuJoCo and body assets.
+
 [简体中文](api.zh_CN.md)
 
 # Neural service API

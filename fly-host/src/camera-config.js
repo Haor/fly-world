@@ -8,10 +8,12 @@ export function cameraFit(view, aspect) {
   return Math.max(1, (view === 'top' ? 1.4 : 1.55) / aspect);
 }
 export function cameraPullback(pose) {
+  if(pose.physical)return 1.7;
   return 1 + 0.5 * Math.max(0, Math.min(1, pose.wingOpen || 0));
 }
 /** Track a point inside the specimen, including its bank, pitch and heading. */
 export function cameraTarget(p) {
+  if(p.physical)return [p.z,p.x,p.y];
   const cy = Math.cos(p.yaw),
     sy = Math.sin(p.yaw),
     cp = Math.cos(p.pitch),

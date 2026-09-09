@@ -1,3 +1,5 @@
+import {RUN_MODES,serviceEndpoint} from './run-modes.js';
+import {WORLD_OPTION_KEYS} from './world-contract.js';
 import './style.css';
 import { configureAssetBase } from './data-loader.js';
 import { BrainView } from './brain-view.js';
@@ -14,15 +16,19 @@ const $ = id => document.getElementById(id);
 const assetBase = new URL(import.meta.env.BASE_URL, document.baseURI).href;
 configureAssetBase(assetBase);
 let retainedNeurons, brainView, bodyView, groups, booting = false, assetsReady = false, disposed = false;
+let runMode='webgpu';
+const profile=()=>RUN_MODES[runMode];
+const serviceField=suffix=>$(runMode+'-'+suffix);
 let currentView = 'overview', drawnEvent = null, lastEpoch = '';
 const observations = new Observations();
 const simulation = new Simulation({assetBase, onState: stateChanged, onResult: received,onConnections:m=>brainView?.setConnections(m),
   canStep: () => !document.hidden || passport.connected,
   createWorker: backend => {
     if (backend !== 'cloud') return new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
-    const remote=new CloudBrain({url:$('cloud-url').value,token:$('cloud-token').value,neurons:brainView.neurons,modelId:$('model-scale').value==='full'?'malecns-v1.0-full':'malecns-v1.0-retained',
-      compute:$('service-compute').value,dynamics:simulation.dynamics,inputMode:simulation.world.options.mode,onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);simulation.setNeurons(neurons);}});
-    $('cloud-token').value='';return remote;
+    const remote=new CloudBrain({url:serviceEndpoint(runMode,serviceField('url').value),token:serviceField('token').value,neurons:brainView.neurons,modelId:profile().model,
+      compute:'cuda',execution:'world',worldOptions:Object.fromEntries(WORLD_OPTION_KEYS.filter(key=>simulation.world.options[key]!==undefined).map(key=>[key,simulation.world.options[key]])),
+      dynamics:simulation.dynamics,inputMode:'sensory',onBodyDefinition:definition=>bodyView.setPhysicalDefinition(definition),onMetadata:(neurons)=>{brainView.setNeurons(neurons);groups=populations(neurons);simulation.setNeurons(neurons);}});
+    serviceField('token').value='';return remote;
   }});
 const habitatView = new HabitatView($('habitat-canvas'), simulation.world);
 const passport = attachPassport(action => {
@@ -30,10 +36,7 @@ const passport = attachPassport(action => {
   if (action === 'PAUSE') simulation.togglePause();
   else if (action === 'RESET') simulation.reset();
   else {
-    const key = {WALK:'walk',LEFT:'left',RIGHT:'right',FLY:'escape'}[action];
-    if (!key || simulation.world.options.mode==='sensory') return false;
-    if (simulation.paused) simulation.togglePause();
-    return stimulate(key);
+    return false;
   }
   return true;
 }, renderDevice);
@@ -52,13 +55,14 @@ function stateChanged() {
   const usable = s.ready && !s.resetting;
   for (const id of ['pause','reset','random-start','loom','baseline']) $(id).disabled = !usable;
   for (const button of document.querySelectorAll('[data-preset]')) button.disabled = !usable || s.world.options.mode==='sensory';
-  for(const id of ['backend','model-scale','input-mode','service-compute'])$(id).disabled=booting||s.phase==='loading'||s.resetting;
+  for(const button of document.querySelectorAll('[data-run-mode]'))button.disabled=booting||s.phase==='loading'||s.resetting;
   $('pause-label').textContent = s.paused ? '继续' : '暂停';
   $('launch-panel').hidden = s.ready;
   $('start').disabled = booting || s.phase === 'loading';
-  $('start').textContent = s.phase === 'error' ? '重试本地模拟 ↗' : s.phase === 'loading' || booting ? '正在准备…' : '启动本地模拟 ↗';
+  for(const mode of ['local-cuda','remote'])$(mode+'-connect').disabled=booting||s.phase==='loading'||s.ready;
+  $('start').textContent = s.phase === 'loading' || booting ? '正在准备…' : (s.phase==='error'?'重试':'启动')+profile().title+' ↗';
   $('launch-title').textContent = s.phase === 'error' ? '观察暂时中断' : s.phase === 'loading' || booting ? '正在加载' : '启动仿真';
-  $('launch-detail').textContent = s.detail || ($('model-scale').value==='full'?'连接推理服务，载入全量神经图。':'166,700 个节点，在你的电脑上运行。');
+  $('launch-detail').textContent = s.detail || profile().detail;
   $('load-progress').hidden = s.phase !== 'loading';
   if (s.progress == null) $('load-progress').removeAttribute('value'); else $('load-progress').value = s.progress;
   if (brainView) brainView.enabled = usable && s.world.options.mode!=='sensory' && $('manual-mode').checked;
@@ -73,24 +77,27 @@ function render() {
   preview.drawImage($('habitat-canvas'),0,24,96,70);
   $('behavior').textContent = active ? s.paused ? '观察已暂停' : behaviorLabel(pose.behavior) : '等待启动';
   $('neural-time').textContent = active ? pose.time.toFixed(2) : '—';
-  $('hunger').textContent = active ? Math.round(world.hunger*100)+'%' : '—';
-  $('energy').textContent = active ? Math.round(world.energy*100)+'%' : '—';
+  $('hunger').textContent = active ? world.physical ? '未建模' : Math.round(world.hunger*100)+'%' : '—';
+  $('energy').textContent = active ? world.physical ? '未建模' : Math.round(world.energy*100)+'%' : '—';
   $('hunger-meter').style.width = (active ? world.hunger*100 : 0)+'%';
   $('energy-meter').style.width = (active ? world.energy*100 : 0)+'%';
-  $('flight-output').textContent = active ? `DLM/DVM ${s.body.flightRates.muscleLeft.toFixed(1)} / ${s.body.flightRates.muscleRight.toFixed(1)} Hz · 高度 ${pose.y.toFixed(2)} mm · 起飞 ${s.body.takeoffs}` : '翼动力 — / — Hz · 高度 — mm';
+  $('flight-output').textContent = active && pose.physical ? `接触 ${pose.contacts} · 关节驱动 ${pose.actuation.toFixed(2)} · 身高 ${pose.y.toFixed(2)} mm` : active ? `DLM/DVM ${s.body.flightRates.muscleLeft.toFixed(1)} / ${s.body.flightRates.muscleRight.toFixed(1)} Hz · 高度 ${pose.y.toFixed(2)} mm · 起飞 ${s.body.takeoffs}` : '翼动力 — / — Hz · 高度 — mm';
   $('coordinates').textContent = active ? `X ${pose.x.toFixed(1)} / Z ${pose.z.toFixed(1)} mm` : 'X — / Z —';
   const sensoryOnly=s.world.options.mode==='sensory';
-  $('background').disabled=s.dynamics!=='adaptive'||s.resetting;$('background').checked=s.dynamics==='adaptive'&&s.background;
+  $('background-row').hidden=runMode!=='webgpu';$('background').disabled=runMode!=='webgpu'||s.resetting;$('background').checked=s.dynamics==='adaptive'&&s.background;
   $('mode-label').textContent = s.world.options.enabled ? sensoryOnly?'纯感觉':'辅助实验' : '环境输入关闭';
-  $('foraging').disabled=sensoryOnly;$('foraging').checked=!sensoryOnly&&s.world.options.foraging;$('exploration').disabled=sensoryOnly;$('manual-mode').disabled=sensoryOnly;
+  $('manual-mode').disabled=true;
+  for(const element of document.querySelectorAll('[data-physical-control]'))element.disabled=runMode==='webgpu'||!active;
+  $('feedback-summary').textContent=world.physical?`本体感觉 ${(world.proprioceptive||0).toFixed(1)} Hz · 接触 ${(world.tactile||0).toFixed(1)} Hz`:'物理身体模式提供关节与接触反馈。';
   for(const button of document.querySelectorAll('[data-preset]'))button.disabled=!active||sensoryOnly;
-  $('vision-population').textContent=sensoryOnly?'L1 / L2 · 早期视觉代理':'LC4 / LPLC2 · 人工特征';
+  $('vision-population').textContent=world.physical?'L1 / L2 · 眼柱对比度代理':'L1 / L2 · 双侧光强代理';
   $('input-note').textContent=sensoryOnly?'环境感觉进入网络，由神经活动驱动身体。':'包含人工步行、转向和可选寻食辅助。';
   $('loom').textContent=sensoryOnly?'掠过遮挡 · 0.65 s':'逼近刺激 · 0.65 s';
   $('model-summary').textContent=active?`${s.model.neurons.toLocaleString()} 节点 · ${s.compute} · 空间定位 ${brainView.positionedCount.toLocaleString()} 节点`:
-    $('model-scale').value==='full'?'全量模型 · 通过本地或远程服务推理':'轻量模型 · 可在浏览器推理';
-  $('runtime-status').textContent = active ? s.paused ? '已暂停' : s.backend === 'cloud' ? '服务推理中' : '本地运行中' : s.phase === 'error' ? '计算中断' : s.phase === 'loading' || booting ? '正在准备' : '尚未启动';
-  $('runtime-speed').textContent = active ? `${s.backend === 'gpu' ? 'WebGPU' : s.backend === 'cloud' ? `服务 ${s.compute.toUpperCase()}` : 'CPU'} · ${s.speed.toFixed(2)}×` : 'LOCAL COMPUTE';
+    `${profile().title} · ${profile().nodes.toLocaleString()} 节点 · ${profile().engine}`;
+  $('runtime-status').textContent = active ? s.paused ? '已暂停' : runMode==='remote'?'远程闭环运行中':runMode==='local-cuda'?'本机 CUDA 运行中':'浏览器运行中' : s.phase === 'error' ? '计算中断' : s.phase === 'loading' || booting ? '正在准备' : '尚未启动';
+  $('runtime-speed').textContent = active ? `${s.backend === 'gpu' ? 'WebGPU' : s.backend === 'cloud' ? `${profile().title} CUDA` : 'CPU'} · ${s.speed.toFixed(2)}×` : profile().engine;
+  $('launch-note').textContent=runMode==='webgpu'?'浏览器内计算 · USB 设备可选':'神经与物理在同一服务运行 · USB 设备可选';
   $('runtime-dot').dataset.state = s.phase === 'error' ? 'error' : active && !s.paused ? 'live' : 'idle';
   $('live-dot').dataset.state = active && !s.paused ? 'live' : 'idle';
   for (const [name,key,max] of [['vision','looming',120],['taste','sugar',100],['odor','odor',25]]) {
@@ -98,15 +105,12 @@ function render() {
     $(name+'-meter').style.width = Math.min(100,active ? (key==='looming'&&sensoryOnly?(world.visualLeft+world.visualRight)/2:world[key])/max*100 : 0)+'%';
   }
   $('antenna-rates').textContent = active ? `左 ${world.odorLeft.toFixed(1)} / 右 ${world.odorRight.toFixed(1)} Hz` : '左 — / 右 — Hz';
-  $('forage-state').textContent = sensoryOnly ? '纯感觉 · 不提供寻食指令' : !s.world.options.foraging ? '辅助关闭' : !s.world.options.enabled || !s.world.options.odor ? '等待嗅觉输入' :
-    !active ? '等待启动' : world.forageState === 'track' ? '循味接近' : world.forageState === 'search' ? '局部搜索' :
-      world.forageState === 'contact' ? '接触食物' : world.hunger < .25 || s.world.satiated ? '已饱足' : '暂未寻食';
   $('spike-count').textContent = active ? `${observations.spikes.toLocaleString()} 次累计放电` : '等待神经数据';
   $('export').disabled = !observations.samples.length;
   drawChart(); drawJournal();
 }
 function received(m) {
-  observations.ingest(m.pose,m.rates,m.world,m.total);
+  observations.ingest(m.pose,m.rates,m.world,m.total,m);
   brainView.result(m.firing,m.counts,m.tick); bodyView.update(m.pose);
   render(); sampleDevice();
 }
@@ -157,17 +161,15 @@ function setView(name) {
 }
 async function boot() {
   if (booting || simulation.phase==='loading') return;
-  if ($('backend').value==='cloud') {
-    try {cloudURL($('cloud-url').value);$('cloud-error').textContent='';}
-    catch {$('cloud-error').textContent='请填写有效的云端 WebSocket 地址。';return;}
+  if (runMode!=='webgpu') {
+    try {serviceEndpoint(runMode,serviceField('url').value);$('connection-error').textContent='';}
+    catch(error){$('connection-error').textContent=error.message;return;}
   }
-  if (assetsReady) {if($('backend').value!=='cloud'){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);}simulation.start($('backend').value);return;}
+  if (assetsReady) {if(runMode==='webgpu'){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);}simulation.start(profile().backend);return;}
   booting=true;simulation.detail='正在加载脑解剖数据与三维标本…';stateChanged();
   try {
     brainView?.dispose();bodyView?.dispose();
-    brainView=new BrainView($('brain'),(indices,options)=>{
-      if(simulation.pulse(indices,Number($('strength').value),options.profile,options.replace))event(`手动刺激 · ${indices.length} 个神经元`);
-    },n=>{$('paint-hint').textContent=n?`已选择 ${n.toLocaleString()} 个神经元`:'点击节点查看官方骨架';$('replay').disabled=!n;});
+    brainView=new BrainView($('brain'),()=>{},n=>{$('paint-hint').textContent=n?`已选择 ${n.toLocaleString()} 个神经元`:'点击节点查看官方骨架';$('replay').disabled=!n;});
     brainView.onInspect=bodyId=>simulation.inspect(bodyId);
     bodyView=new FlyScene($('fly'));
     bodyView.onCameraChange=mode=>{for(const button of document.querySelectorAll('[data-camera]'))button.setAttribute('aria-pressed',String(button.dataset.camera===mode));};
@@ -178,28 +180,19 @@ async function boot() {
     retainedNeurons=loaded[0].value;groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);assetsReady=true;
     bodyView.setDepthOfField($('depth-of-field').checked);
     bodyView.setShadows($('show-shadows').checked);
-    booting=false;simulation.start($('backend').value);
+    booting=false;simulation.start(profile().backend);
   } catch(error) {booting=false;simulation.fail(error.message);}
-}
-function stimulate(key) {
-  if(simulation.world.options.mode==='sensory'||!simulation.ready||simulation.resetting||!groups)return false;
-  const ids=groups[key==='escape'?'escapeInput':key],profile=key==='left'||key==='right'?'turn':'paint';
-  brainView.preset(ids,profile,false);
-  const sent=simulation.pulse(ids,Number($('strength').value),profile,true);
-  if(sent)event({walk:'手动步行刺激',left:'手动左转刺激',right:'手动右转刺激',escape:'手动逃逸刺激'}[key]);
-  return sent;
 }
 $('start').onclick=boot;
 $('pause').onclick=()=>simulation.togglePause();$('reset').onclick=()=>simulation.reset();
 $('random-start').onclick=()=>{simulation.reset(randomSpawn());event('更换出生位置');};
-$('loom').onclick=()=>{simulation.world.loom();simulation.world.sense(simulation.body);event(simulation.world.options.mode==='sensory'?'环境遮挡 · 0.65 s':'逼近刺激 · 0.65 s');render();};
+$('loom').onclick=()=>{simulation.stimulateEnvironment('occlusion');event(simulation.world.options.mode==='sensory'?'环境遮挡 · 0.65 s':'逼近刺激 · 0.65 s');render();};
 $('show-shadows').onchange=()=>{habitatView.showShadows=$('show-shadows').checked;bodyView?.setShadows($('show-shadows').checked);render();};
 for(const button of document.querySelectorAll('[data-view]'))button.onclick=()=>setView(button.dataset.view);
 document.querySelector('.mark').onclick=e=>{e.preventDefault();setView('overview');};
-for(const [id,key,label] of [['autonomy','enabled','自主环境'],['vision','vision','逼近视觉'],['taste','taste','接触味觉'],['odor','odor','嗅觉'],['foraging','foraging','寻食辅助']]) {
-  $(id).onchange=()=>{simulation.world.options[key]=$(id).checked;simulation.world.sense(simulation.body);event(`${label} · ${$(id).checked?'开启':'关闭'}`);render();};
+for(const [id,key,label] of [['autonomy','enabled','自主环境'],['vision','vision','逼近视觉'],['taste','taste','接触味觉'],['odor','odor','嗅觉']]) {
+  $(id).onchange=()=>{simulation.configure({[key]:$(id).checked});event(`${label} · ${$(id).checked?'开启':'关闭'}`);render();};
 }
-$('exploration').oninput=()=>{simulation.world.options.exploration=Number($('exploration').value)/100;$('exploration-value').textContent=$('exploration').value+'%';simulation.world.sense(simulation.body);render();};
 $('show-trail').onchange=()=>{habitatView.showTrail=$('show-trail').checked;render();};
 $('show-odor').onchange=()=>{habitatView.showOdor=$('show-odor').checked;render();};
 $('manual-mode').onchange=()=>{if(brainView)brainView.enabled=simulation.world.options.mode!=='sensory'&&simulation.ready&&$('manual-mode').checked;$('manual-tools').hidden=!$('manual-mode').checked;};
@@ -207,33 +200,36 @@ $('projection').onchange=()=>{if(brainView){brainView.projection=$('projection')
 for(const mode of ['brush','erase'])$(mode).onclick=()=>{if(brainView)brainView.mode=mode==='brush'?'paint':'erase';$('brush').setAttribute('aria-pressed',String(mode==='brush'));$('erase').setAttribute('aria-pressed',String(mode==='erase'));};
 $('size').oninput=()=>{if(brainView)brainView.brush=Number($('size').value)/2;};
 $('clear').onclick=()=>{brainView?.clear();simulation.clear();};$('replay').onclick=()=>brainView?.pulse();
-$('strength').oninput=()=>{$('strength-value').textContent=$('strength').value+' Hz';};
-$('silence').onchange=()=>{simulation.silenced=$('silence').checked;event(`突触传播 · ${simulation.silenced?'关闭':'开启'}`);};
-for(const button of document.querySelectorAll('[data-preset]'))button.onclick=()=>stimulate(button.dataset.preset);
-$('baseline').onclick=()=>{simulation.background=false;simulation.world.options.enabled=false;$('autonomy').checked=false;simulation.reset();};
-$('backend').onchange=()=>{
-  $('cloud-settings').hidden=$('backend').value!=='cloud';
-  if($('model-scale').value==='full'&&$('backend').value!=='cloud'){$('backend').value='cloud';$('cloud-settings').hidden=false;}
-  if(assetsReady&&$('backend').value!=='cloud')boot();
+$('silence').onchange=()=>{simulation.silenced=$('silence').checked;simulation.ablate({propagation:!simulation.silenced});event(`突触传播 · ${simulation.silenced?'关闭':'开启'}`);};
+$('baseline').onclick=()=>{simulation.background=false;simulation.configure({enabled:false});$('autonomy').checked=false;simulation.reset();};
+function selectRunMode(mode) {
+  if(!Object.hasOwn(RUN_MODES,mode))return;
+  if(mode===runMode&&simulation.ready)return;
+  if(simulation.ready||simulation.phase==='loading')simulation.fail('运行方式已切换，请启动新会话。','idle');
+  runMode=mode;simulation.world.remoteSnapshot=null;simulation.body.remotePose=null;simulation.world.options.mode='sensory';
+  $('local-cuda-settings').hidden=mode!=='local-cuda';$('remote-settings').hidden=mode!=='remote';
+  $('local-cuda-token').value='';$('remote-token').value='';$('run-description').textContent=profile().detail;$('connection-error').textContent='';
+  for(const button of document.querySelectorAll('[data-run-mode]')){const selected=button.dataset.runMode===mode;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+  bodyView?.setPhysicalDefinition(null);stateChanged();
+}
+for(const button of document.querySelectorAll('[data-run-mode]')){
+  button.onclick=()=>selectRunMode(button.dataset.runMode);
+  button.onkeydown=e=>{
+    if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+    e.preventDefault();const choices=[...document.querySelectorAll('[data-run-mode]')].filter(b=>!b.disabled),index=choices.indexOf(button);
+    const next=e.key==='Home'?0:e.key==='End'?choices.length-1:(index+(['ArrowUp','ArrowLeft'].includes(e.key)?-1:1)+choices.length)%choices.length;
+    choices[next]?.click();choices[next]?.focus();
+  };
+}
+$('local-cuda-connect').onclick=boot;$('remote-connect').onclick=boot;
+let environmentTimer;
+for(const [id,key,scale] of [['light-level','light',100],['light-angle','lightAngle',1],['odor-strength','odorStrength',100],['odor-x','odorX',1],['odor-z','odorZ',1],['wind-speed','windSpeed',1],['wind-angle','windAngle',1],['pattern-speed','patternSpeed',1],['pattern-contrast','patternContrast',100]])$(id).oninput=()=>{
+  simulation.world.options[key]=Number($(id).value)/scale;
+  clearTimeout(environmentTimer);environmentTimer=setTimeout(()=>simulation.configure(Object.fromEntries(WORLD_OPTION_KEYS.filter(k=>simulation.world.options[k]!==undefined).map(k=>[k,simulation.world.options[k]]))),80);render();
 };
-$('cloud-connect').onclick=boot;
-$('model-scale').onchange=()=>{
-  simulation.fail('模型已切换，请启动或连接所选模型。','idle');
-  if($('model-scale').value==='full'){$('backend').value='cloud';$('cloud-settings').hidden=false;document.querySelector('.advanced').open=true;}
-  else {$('backend').value='auto';$('cloud-settings').hidden=true;if(retainedNeurons){brainView.setNeurons(retainedNeurons);groups=populations(retainedNeurons);simulation.setNeurons(retainedNeurons);}}
-  render();
-};
-$('input-mode').onchange=()=>{
-  simulation.world.options.mode=$('input-mode').value;
-  $('manual-mode').checked=false;$('manual-tools').hidden=true;
-  simulation.clear();
-  if(assetsReady&&$('backend').value!=='cloud')boot();else if(simulation.ready)simulation.fail('输入方式已切换，请重新填写令牌并连接。','idle');else render();
-};
-for(const [id,key,scale] of [['light-level','light',100],['light-angle','lightAngle',1]])$(id).oninput=()=>{
-  simulation.world.options[key]=Number($(id).value)/scale;simulation.world.sense(simulation.body);render();
-};
+$('proprioception').onchange=()=>simulation.configure({proprioception:$('proprioception').checked});
+$('looming-object').onclick=()=>simulation.stimulateEnvironment('looming');
 $('background').onchange=()=>{simulation.background=$('background').checked;if(simulation.ready)simulation.reset();else render();};
-$('service-compute').onchange=()=>{if(simulation.ready&&simulation.backend==='cloud')simulation.fail('计算后端已切换，请重新填写令牌并连接。','idle');};
 for(const button of document.querySelectorAll('[data-camera]'))button.onclick=()=>bodyView?.setCamera(button.dataset.camera);
 $('depth-of-field').onchange=()=>bodyView?.setDepthOfField($('depth-of-field').checked);
 $('take-control').onclick=async()=>{

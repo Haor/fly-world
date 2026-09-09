@@ -1,3 +1,4 @@
+import {WORLD_OPTION_KEYS} from './world-contract.js';
 import { FlightReadout } from './flight-readout.js';
 import { FlyController } from './controller.js';
 import { Habitat } from './habitat.js';
@@ -14,6 +15,7 @@ export class Simulation {
     this.epoch = 0; this.generation = 0; this.tick = 0; this.deferred = null; this.ready = false; this.paused = false;
     this.pending = false; this.resetting = false; this.backend = 'cpu'; this.speed = 0;
     this.tick = 0; this.deferred = null;
+    this.execution='neural';this.remotePose=null;this.controlPending=false;
     this.dynamics='adaptive';this.background=true;
     this.phase = 'idle'; this.detail = ''; this.lastResult = 0;
   }
@@ -21,14 +23,14 @@ export class Simulation {
   emit() { this.onState(this); }
   arm(ms) {
     clearTimeout(this.watchdog);
-    this.watchdog = setTimeout(() => this.fail('计算超时，请重试或选择 JavaScript 后端。'), ms);
+    this.watchdog = setTimeout(() => this.fail(this.execution==='world'?'服务响应超时，请检查连接与服务状态。':'计算超时，请重试。'), ms);
   }
   start(backend = 'auto') {
     this.worker?.terminate(); clearTimeout(this.timer); clearTimeout(this.watchdog);
     const epoch = ++this.epoch;
     this.generation = 0; this.tick = 0; this.deferred = null; this.ready = false; this.paused = false; this.pending = false;
     this.resetting = false; this.backend = 'cpu'; this.phase = 'loading'; this.detail = '';
-    this.body.reset();this.body.profile=this.dynamics; this.world.reset(this.body); this.lastResult = 0; this.speed = 0;
+    this.execution='neural';this.world.remoteSnapshot=null;this.controlPending=false;this.body.reset();this.body.profile=this.dynamics; this.world.reset(this.body); this.lastResult = 0; this.speed = 0;
     this.emit();
     try { this.worker = this.createWorker(backend); }
     catch (e) { this.fail(e.message); return; }
@@ -45,11 +47,17 @@ export class Simulation {
       } else if (m.type === 'ready') {
         clearTimeout(this.watchdog);
         this.model=m.model||{id:'malecns-v1.0-retained',neurons:166700};this.compute=m.compute||m.backend;this.computeKernel=m.computeKernel;this.projectionSize=m.projectionSize||166700;
-        this.backend = m.backend; this.ready = true; this.phase = 'ready';
-        this.emit(); this.request();
+        this.execution=m.execution||'neural';this.backend = m.backend; this.ready = true; this.phase = 'ready';
+        this.emit();if(this.execution==='world')this.worker.postMessage({type:'run',running:true});else this.request();
+      } else if(m.type==='world-frame'){
+        if(m.generation!==this.generation||this.resetting)return;
+        clearTimeout(this.watchdog);this.tick=m.tick;this.speed=m.speed;this.paused=!m.running;this.applyWorld(m);if(m.running)this.arm(60000);
+      } else if(m.type==='control'){
+        this.controlPending=false;this.paused=!m.running;clearTimeout(this.watchdog);if(m.running)this.arm(60000);Object.assign(this.world.options,m.options);this.emit();
       } else if (m.type === 'reset') {
         if (m.generation !== this.generation) return;
         clearTimeout(this.watchdog); this.pending = false; this.resetting = false;
+        if(this.execution==='world'&&m.pose){this.paused=!m.running;this.applyWorld({...m,tick:0,steps:0,total:0,cumulativeSpikes:0,rates:[0,0,0,0,0,0,0],firing:new Uint32Array(),counts:new Uint32Array(),wallMs:0});if(m.running)this.arm(60000);}
         this.emit(); this.request();
       } else if (m.type === 'result') {
         if (m.generation !== this.generation || this.resetting) return;
@@ -69,6 +77,21 @@ export class Simulation {
     this.arm(180000);
     this.worker.postMessage({type:'init', backend, assetBase:this.assetBase,dynamics:this.dynamics});
   }
+  applyWorld(m) {
+    this.body.remotePose=m.pose;for(const key of ['x','z','y','yaw','time','velocity','yawRate','takeoffs'])this.body[key]=m.pose[key]||0;
+    this.body.rates=Float64Array.from(m.rates);this.world.remoteSnapshot=m.world;Object.assign(this.world.options,m.world.options);
+    this.onResult(m);
+  }
+  configure(options) {
+    Object.assign(this.world.options,options);
+    if(this.ready&&this.execution==='world')this.worker.postMessage({type:'environment',options:Object.fromEntries(Object.entries(options).filter(([key])=>WORLD_OPTION_KEYS.includes(key)))});
+    else this.world.sense(this.body);
+  }
+  stimulateEnvironment(stimulus='occlusion') {
+    if(this.execution==='world')this.worker.postMessage({type:'stimulus',stimulus});
+    else this.world.loom();
+  }
+  ablate(controls) {if(this.execution==='world'&&this.ready)this.worker.postMessage({type:'ablation',controls});}
   applyResult(m) {
     this.tick = m.tick;
     const now = performance.now(), elapsed = this.lastResult ? now - this.lastResult : m.wallMs;
@@ -83,19 +106,21 @@ export class Simulation {
   }
   request() {
     clearTimeout(this.timer);
+    if (this.execution==='world')return;
     if (!this.ready || this.paused || this.pending || this.resetting || !this.canStep()) return;
     this.pending = true;this.requestStarted=performance.now();
     this.worker.postMessage({type:'step', generation:this.generation, silenced:!!this.silenced,background:this.dynamics==='adaptive'&&this.background, sensory:this.world.sense(this.body)});
     this.arm(60000);
   }
   pulse(indices, strength, profile = 'paint', replace = false) {
-    if (this.world.options.mode==='sensory' || !this.ready || this.resetting || !indices.length) return false;
+    if (this.execution==='world'||this.world.options.mode==='sensory' || !this.ready || this.resetting || !indices.length) return false;
     this.worker.postMessage({type:'pulse',indices,strength,profile,replace}); this.request(); return true;
   }
   inspect(bodyId){if(this.ready&&!this.resetting)this.worker.postMessage({type:'inspect',bodyId,generation:this.generation});}
-  clear() { if (this.ready) this.worker.postMessage({type:'clear'}); }
+  clear() { if (this.ready&&this.execution!=='world') this.worker.postMessage({type:'clear'}); }
   togglePause() {
     if (!this.ready || this.resetting) return;
+    if(this.execution==='world'){if(!this.controlPending){this.controlPending=true;this.worker.postMessage({type:'run',running:this.paused});}return;}
     this.paused = !this.paused; clearTimeout(this.timer); this.lastResult = 0;
     this.emit();
     if (!this.paused) {
@@ -106,6 +131,7 @@ export class Simulation {
   reset(spawn = null) {
     if (!this.ready || this.resetting) return;
     this.resetting = true; this.generation++; this.tick=0; this.deferred=null; clearTimeout(this.timer);
+    if(this.execution==='world'){this.speed=0;this.emit();this.worker.postMessage({type:'reset',generation:this.generation,spawn});this.arm(60000);return;}
     this.body.reset(); this.world.reset(this.body);
     if (spawn) {
       Object.assign(this.body, {x:spawn.x,z:spawn.z,yaw:spawn.yaw});

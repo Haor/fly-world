@@ -1,3 +1,5 @@
+运行方式现分为本机轻量 WebGPU、本机全量 CUDA、远程全量。全量模式在计算机器上运行神经与 MuJoCo 物理闭环；配置见[运行指南](cloud/docs/physical-world.zh_CN.md)，能力边界与实验见[物理闭环验证](fly-host/docs/physical-loop.zh_CN.md)。
+
 [English](README.md)
 
 # Fly World

@@ -17,3 +17,5 @@ cloud/models/
 *.log
 benchmark*.json
 *.bin
+
+cloud/assets/flybody/

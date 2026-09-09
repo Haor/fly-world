@@ -1,3 +1,4 @@
+import {WORLD_ENCODING,validateWorldFrame,validateWorldOptions} from './world-contract.js';
 import {DYNAMICS_ENCODING} from './background.js';
 import { CHANNELS } from './stimulus.js';
 import { PROTOCOL, STEP_COUNT, DT_MS } from './neural-contract.js';
@@ -13,7 +14,8 @@ export function cloudURL(value) {
 }
 /** Worker-compatible remote transport. No automatic reconnect or local fallback. */
 export class CloudBrain {
-  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',dynamics='adaptive',seed=1,onMetadata=null}) {
+  constructor({url,token='',neurons,Socket=WebSocket,modelId='malecns-v1.0-full',compute='cpu',inputMode='assisted',dynamics='adaptive',seed=1,onMetadata=null,execution='neural',worldOptions={},onBodyDefinition=null}) {
+    this.execution=execution;this.worldOptions=worldOptions;this.onBodyDefinition=onBodyDefinition;this.lastWorldTick=0;
     this.seed=seed;this.dynamics=dynamics;this.modelId=modelId;this.compute=compute;this.inputMode=inputMode;this.onMetadata=onMetadata;this.metadataRows=[];
     this.url=cloudURL(url);this.token=token;this.neurons=neurons;
     this.byId=new Map(neurons.map((r,i)=>[String(r[0]),i]));
@@ -26,17 +28,17 @@ export class CloudBrain {
     if(m.type==='init') {
       this.socket=new this.Socket(this.url);
       this.socket.onopen=()=>{
-        this.socket.send(JSON.stringify({type:'init',protocol:PROTOCOL,model:this.modelId,compute:this.compute,inputMode:this.inputMode,metadata:!!this.onMetadata,seed:this.seed,dynamics:this.dynamics,dynamicsEncoding:DYNAMICS_ENCODING,
+        this.socket.send(JSON.stringify({type:'init',protocol:PROTOCOL,...(this.execution==='world'?{execution:'world',worldEncoding:WORLD_ENCODING,worldOptions:this.worldOptions}:{}),model:this.modelId,compute:this.compute,inputMode:this.inputMode,metadata:!!this.onMetadata,seed:this.seed,dynamics:this.dynamics,dynamicsEncoding:DYNAMICS_ENCODING,
           dtMs:DT_MS,steps:STEP_COUNT,channels:CHANNELS,spikeIds:'body-id',...(this.onMetadata?{spikeEncoding:'index-count/1'}:{}),sensoryEncoding:SENSORY_ENCODING,token:this.token}));
         this.token='';
       };
-      this.socket.onmessage=e=>{try{this.receive(e.data);}catch{this.error('云端返回了无效或不兼容的数据');}};
+      this.socket.onmessage=e=>{try{this.receive(e.data);}catch(error){console.error('Inference response failed',error);this.error(`推理结果处理失败：${error.message}`);}};
       this.socket.onerror=()=>this.error('云端连接失败');
       this.socket.onclose=()=>this.error('云端连接已断开');
       return;
     }
     if(!this.ready || this.socket?.readyState!==1) {this.error('云端尚未就绪');return;}
-    if(m.type==='reset') {this.generation=m.generation;this.requests.clear();}
+    if(m.type==='reset') {this.lastWorldTick=0;this.generation=m.generation;this.requests.clear();}
     const requestId=++this.sequence;
     const wire={...m,requestId,generation:this.generation};
     if(m.type==='pulse') {
@@ -46,7 +48,7 @@ export class CloudBrain {
       });delete wire.indices;
     }
     if(m.type==='step') {wire.steps=STEP_COUNT;wire.sensory=Object.fromEntries(SENSORY_KEYS.map(key=>[key,m.sensory?.[key]||0]));}
-    if(m.type==='step'||m.type==='reset'||m.type==='inspect')this.requests.set(requestId,{type:m.type,generation:this.generation});
+    if(['step','reset','inspect','run','environment','stimulus','ablation'].includes(m.type))this.requests.set(requestId,{type:m.type,generation:this.generation});
     this.socket.send(JSON.stringify(wire));
   }
   receive(raw) {
@@ -62,6 +64,7 @@ export class CloudBrain {
       if(m.compute!==undefined && m.compute!==this.compute)throw Error('Compute mismatch');
       if(m.spikeEncoding!==undefined&&!['body-id/1','index-count/1'].includes(m.spikeEncoding))throw Error('Unsupported spike encoding');
       if(m.spikeEncoding==='index-count/1'&&!this.onMetadata)throw Error('Indexed spikes require complete metadata');
+      if(this.execution==='world'&&(m.execution!=='world'||m.worldEncoding!==WORLD_ENCODING||m.bodyEncoding!=='flybody-mujoco/1'))throw Error('Server does not own a physical world');
       this.handshake=m;
       if(this.onMetadata) {
         if(m.metadata?.rows!==m.model.neurons)throw Error('Missing full metadata');
@@ -82,15 +85,25 @@ export class CloudBrain {
         if(this.metadataRows.length!==this.handshake.model.neurons)throw Error('Incomplete neural graph');
         this.neurons=this.metadataRows;this.byId=new Map(this.neurons.map((r,i)=>[String(r[0]),i]));
         if(this.byId.size!==this.neurons.length)throw Error('Duplicate body IDs');
-        this.onMetadata(this.neurons,this.handshake.model);this.finishReady();
+        this.onMetadata(this.neurons,this.handshake.model);if(this.execution==='world')this.onBodyDefinition?.(this.handshake.bodyDefinition);this.finishReady();
       }
       return;
     }
     if(m.type==='error') {if(m.generation===undefined || m.generation===this.generation)this.error(`推理服务失败：${m.code||m.message||'UNKNOWN'}`);return;}
+    if(m.type==='world-frame'){
+      if(this.execution!=='world'||!this.ready)throw Error('Unexpected world frame');
+      if(m.generation!==this.generation)return;
+      validateWorldFrame(m,this.lastWorldTick,this.neurons.length);this.lastWorldTick=m.tick;
+      this.emit({...m,firing:Uint32Array.from(m.firing),counts:Uint32Array.from(m.counts)});return;
+    }
     const request=this.requests.get(m.requestId);
     if(!request || m.generation!==request.generation || m.generation!==this.generation)return;
     if(m.type==='reset' && request.type==='reset') {
-      this.requests.delete(m.requestId);this.emit({type:'reset',generation:m.generation});return;
+      this.requests.delete(m.requestId);this.emit(m);return;
+    }
+    if(m.type==='control'&&['run','environment','stimulus','ablation'].includes(request.type)){
+      if(typeof m.running!=='boolean'||!Number.isSafeInteger(m.appliedTick))throw Error('Invalid world control acknowledgement');
+      validateWorldOptions(m.options);this.requests.delete(m.requestId);this.emit(m);return;
     }
     if(m.type==='connections'&&request.type==='inspect') {
       if(m.direction!=='incoming'||typeof m.bodyId!=='string'||!this.byId.has(m.bodyId)||!Array.isArray(m.items)||m.items.length>32||
@@ -123,6 +136,6 @@ export class CloudBrain {
     this.emit({type:'result',generation:m.generation,tick:m.tick,steps:m.steps,total:m.total,
       wallMs:m.wallMs,rates:m.rates,firing:Uint32Array.from(firing),counts:Uint16Array.from(counts)});
   }
-  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',model:this.handshake.model,compute:this.compute,computeKernel:this.handshake.computeKernel,dynamics:this.dynamics,projectionSize:this.neurons.length});}
+  finishReady() {this.ready=true;this.emit({type:'ready',backend:'cloud',execution:this.execution,model:this.handshake.model,compute:this.compute,computeKernel:this.handshake.computeKernel,dynamics:this.dynamics,projectionSize:this.neurons.length});}
   terminate() {this.closed=true;this.token='';this.requests.clear();this.socket?.close();}
 }

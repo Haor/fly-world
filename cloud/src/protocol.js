@@ -1,3 +1,4 @@
+import {WORLD_ENCODING,validateWorldOptions} from '../../fly-host/src/world-contract.js';
 import {DYNAMICS_ENCODING} from '../../fly-host/src/background.js';
 import { CHANNELS, PULSE_ENVELOPES } from '../../fly-host/src/stimulus.js';
 import { PROTOCOL, STEP_COUNT, DT_MS } from '../../fly-host/src/neural-contract.js';
@@ -6,6 +7,10 @@ import { SENSORY_ENCODING, SENSORY_KEYS } from '../../fly-host/src/habitat.js';
 const integer = x => Number.isSafeInteger(x) && x>=0;
 const rate = x => Number.isFinite(x) && x>=0 && x<=300;
 export function validateInit(m) {
+  if(m.execution==='world') {
+    if(m.worldEncoding!==WORLD_ENCODING||m.metadata!==true||m.spikeEncoding!=='index-count/1'||m.inputMode!=='sensory'||m.dynamics!=='adaptive'||!['cpu','cuda'].includes(m.compute))throw Error('INVALID_WORLD_INIT');
+    validateWorldOptions(m.worldOptions||{});
+  } else if(m.execution!==undefined&&m.execution!=='neural')throw Error('INVALID_EXECUTION');
   if(m.type!=='init' || m.protocol!==PROTOCOL || !['malecns-v1.0-full','malecns-v1.0-retained'].includes(m.model) ||
     (m.spikeEncoding!==undefined && m.spikeEncoding!=='index-count/1') ||
     (m.spikeEncoding==='index-count/1' && m.metadata!==true) ||

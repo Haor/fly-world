@@ -1,3 +1,5 @@
+> 观测站的本机全量和远程全量现使用[物理闭环接口与配置](physical-world.zh_CN.md)。下文逐步神经 API 和旧界面操作保留用于兼容测试；完整物理闭环还需要 MuJoCo 与身体资产。
+
 [English](api.md)
 
 # 推理服务 API
