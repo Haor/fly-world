@@ -33,3 +33,14 @@
 
 
 .transport .render-option{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-right:8px;white-space:nowrap}
+
+.light-controls{display:grid;gap:16px;margin:20px 0 24px;padding-left:24px}
+.light-controls .range-label{display:grid;grid-template-columns:minmax(0,1fr);justify-content:normal;gap:9px;font-size:11px}
+.light-controls input[type=range]{width:100%;margin:0}
+@media(min-width:851px){
+  .app-shell{height:100svh;overflow:hidden}
+  .station{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0}
+  #workspace{width:100%;height:100%;min-height:0;margin:0 auto;grid-template-rows:minmax(0,1fr)}
+  .world-column,.inspector{min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .inspector{scrollbar-gutter:stable}
+}
